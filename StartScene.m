@@ -8,6 +8,7 @@
 
 #import "StartScene.h"
 #import "MyScene.h"
+#import "ClassicScene.h"
 
 @implementation StartScene
 
@@ -38,6 +39,12 @@
         multiButton.name = @"multiButton";
         multiButton.zPosition = 1.0f;
         [self addChild:multiButton];
+        
+        SKSpriteNode *classicButton = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:1.0 green:0.95 blue:0.87 alpha:.7] size:CGSizeMake(30, 30)];//insert picture here?
+        classicButton.position = CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame)-120);
+        classicButton.name = @"classicButton";
+        classicButton.zPosition = 1.0f;
+        [self addChild:classicButton];
         
         SKSpriteNode *redBrick = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:1.0 green:0.5 blue:0.5 alpha:1.0] size:CGSizeMake(20, 20)];
         redBrick.position=CGPointMake(40,40);
@@ -88,6 +95,16 @@
         MyScene* gameScene = [[MyScene alloc] initWithSize:self.size];
         gameScene.scaleMode = SKSceneScaleModeAspectFill;
         gameScene.multiMode = YES;
+        gameScene.touchLocation = location;
+        [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65f]];
+        
+    }else if ([node.name isEqualToString:@"classicButton"]) {
+        [self runAction:[SKAction playSoundFileNamed:@"wood1.m4a" waitForCompletion:NO]];
+        
+        [self nodesDisappear];
+        ClassicScene* gameScene = [[ClassicScene alloc] initWithSize:self.size];
+        gameScene.scaleMode = SKSceneScaleModeAspectFill;
+        gameScene.multiMode = NO;
         gameScene.touchLocation = location;
         [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65f]];
         

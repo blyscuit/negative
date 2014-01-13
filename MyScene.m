@@ -7,7 +7,7 @@
 //
 
 #import "MyScene.h"
-#import <CoreMotion/CoreMotion.h>
+//#import <CoreMotion/CoreMotion.h>
 #import "GameOverScene.h"
 
 
@@ -57,9 +57,11 @@ typedef enum EnermyMoveType{
 //Player1Property
 @property NSInteger playerCharge;
 @property BOOL playerGuardable;
+@property CGPoint playerTouchLocation;
 
 @property BOOL eGuardable;
 @property NSInteger eCharge;
+@property CGPoint enemyTouchLocation;
 
 @end
 
@@ -125,6 +127,7 @@ typedef enum EnermyMoveType{
 }
 
 -(void)setupPlayerButton{
+    /*
     SKLabelNode* playerFireLabel = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
     
     playerFireLabel.name = @"1Fire";
@@ -171,6 +174,14 @@ typedef enum EnermyMoveType{
     
     playerGuardLabel.position = CGPointMake(self.frame.size.width-playerGuardLabel.frame.size.width,40);
     [self addChild:playerGuardLabel];
+    */
+    SKSpriteNode *playerControl = [SKSpriteNode spriteNodeWithImageNamed:@"battle.png" ];
+    playerControl.size=CGSizeMake(self.frame.size.width, 50);
+    playerControl.color =[UIColor blueColor];
+    playerControl.alpha=.5;
+    playerControl.position=CGPointMake(CGRectGetMidX(self.frame), -playerControl.size.height);
+    playerControl.name = @"playerControl";
+    [self addChild:playerControl];
 }
 
 -(void)setupEnemy{
@@ -192,6 +203,7 @@ typedef enum EnermyMoveType{
 }
 
 -(void)setupEnemyButton{
+    /*
     SKLabelNode* playerFireLabel = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
     
     playerFireLabel.name = @"2Fire";
@@ -238,6 +250,16 @@ typedef enum EnermyMoveType{
     
     playerGuardLabel.position = CGPointMake(self.frame.size.width-playerGuardLabel.frame.size.width,self.frame.size.height-40);
     [self addChild:playerGuardLabel];
+    */
+    SKSpriteNode *enemyControl = [SKSpriteNode spriteNodeWithImageNamed:@"battle.png"];
+    enemyControl.size=CGSizeMake(self.frame.size.width, 50);
+    enemyControl.color = [UIColor redColor];
+    SKAction *rotate = [SKAction scaleXTo:-1. y:-1. duration:0.0];
+    enemyControl.alpha=.5;
+    enemyControl.position=CGPointMake(CGRectGetMidX(self.frame), self.frame.size.height+enemyControl.size.height);
+    enemyControl.name = @"enemyControl";
+    [enemyControl runAction:rotate];
+    [self addChild:enemyControl];
 }
 
 -(void)setupContainers{
@@ -293,7 +315,7 @@ typedef enum EnermyMoveType{
     
     UITouch *touch = [touches anyObject];
     CGPoint location = [touch locationInNode:self];
-    SKNode *node = [self nodeAtPoint:location];
+    /*SKNode *node = [self nodeAtPoint:location];
     
     if ([node.name isEqualToString:@"1Fire"]) {
         self.player1MoveType = PlayerFire;
@@ -317,7 +339,151 @@ typedef enum EnermyMoveType{
         self.eMoveType=ECharge;
     }else if([node.name isEqualToString:@"2Guard"]){
         self.eMoveType=EGuard;
+    }*/
+    
+    if (multiMode) {
+        if (location.y<=self.frame.size.height/2) {
+            SKNode *control = [self childNodeWithName:@"playerControl"];
+            SKAction *moveIn = [SKAction moveToY:control.frame.size.height/2 duration:0.2];
+            SKAction *fade = [SKAction fadeAlphaTo:.5 duration:0.1];
+            [control runAction:fade];
+            [control runAction:moveIn];
+            self.playerTouchLocation = location;
+            if (location.x<self.frame.size.width*1/5) {
+                self.player1MoveType = PlayerMoveDown;
+            }else if(location.x<self.frame.size.width*2/5){
+                self.player1MoveType = PlayerMoveUp;
+            }else if(location.x<self.frame.size.width*3/5){
+                self.player1MoveType = PlayerCharge;
+            }else if(location.x<self.frame.size.width*4/5){
+                self.player1MoveType = PlayerFire;
+            }else if(location.x<self.frame.size.width*5/5){
+                self.player1MoveType = PlayerGuard;
+            }
+        }
+        if (location.y>self.frame.size.height/2) {
+            SKNode *control = [self childNodeWithName:@"enemyControl"];
+            SKAction *moveIn = [SKAction moveToY:self.frame.size.height-control.frame.size.height/2 duration:0.2];
+            SKAction *fade = [SKAction fadeAlphaTo:.5 duration:0.1];
+            [control runAction:fade];
+            [control runAction:moveIn];
+            self.playerTouchLocation = location;
+            if (location.x<self.frame.size.width*1/5) {
+                self.eMoveType = EGuard;
+            }else if(location.x<self.frame.size.width*2/5){
+                self.eMoveType = EFire;
+            }else if(location.x<self.frame.size.width*3/5){
+                self.eMoveType = PlayerCharge;
+            }else if(location.x<self.frame.size.width*4/5){
+                self.eMoveType = EMoveDown;
+            }else if(location.x<self.frame.size.width*5/5){
+                self.eMoveType = EMoveUp;
+            }
+
+        }
+
+    }else{
+        if (location.y<=self.frame.size.height) {
+            SKNode *control = [self childNodeWithName:@"playerControl"];
+            SKAction *moveIn = [SKAction moveToY:control.frame.size.height/2 duration:0.2];
+            [control runAction:moveIn];
+            self.playerTouchLocation = location;
+            if (location.x<self.frame.size.width*1/5) {
+                self.player1MoveType = PlayerMoveDown;
+            }else if(location.x<self.frame.size.width*2/5){
+                self.player1MoveType = PlayerMoveUp;
+            }else if(location.x<self.frame.size.width*3/5){
+                self.player1MoveType = PlayerCharge;
+            }else if(location.x<self.frame.size.width*4/5){
+                self.player1MoveType = PlayerFire;
+            }else if(location.x<self.frame.size.width*5/5){
+                self.player1MoveType = PlayerGuard;
+            }
+        }
     }
+    
+}
+
+-(void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event{
+    UITouch *touch = [touches anyObject];
+    CGPoint location = [touch locationInNode:self];
+    if (multiMode) {
+        if (location.y<=self.frame.size.height/2) {
+            SKNode *control = [self childNodeWithName:@"playerControl"];
+            SKAction *moveIn = [SKAction moveToY:-control.frame.size.height/2 duration:0.1];
+            SKAction *fade = [SKAction fadeAlphaTo:.0 duration:0.1];
+            [control runAction:fade];
+            [control runAction:moveIn];
+            self.playerTouchLocation = location;
+        }
+        if (location.y>self.frame.size.height/2) {
+            SKNode *control = [self childNodeWithName:@"enemyControl"];
+            SKAction *moveIn = [SKAction moveToY:self.frame.size.height+control.frame.size.height/2 duration:0.1];
+            SKAction *fade = [SKAction fadeAlphaTo:.0 duration:0.1];
+            [control runAction:fade];
+            [control runAction:moveIn];
+            self.enemyTouchLocation = location;
+        }
+        
+    }else{
+        if (location.y<=self.frame.size.height) {
+            SKNode *control = [self childNodeWithName:@"playerControl"];
+            SKAction *moveIn = [SKAction moveToY:-control.frame.size.height/2 duration:0.1];
+            [control runAction:moveIn];
+            self.playerTouchLocation = location;
+        }
+    }
+}
+
+-(void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event{
+    
+    UITouch *touch = [touches anyObject];
+    CGPoint location = [touch locationInNode:self];
+    
+    if (multiMode) {
+        if (location.y<=self.frame.size.height/2) {
+            if (location.x<self.frame.size.width*1/5) {
+                self.player1MoveType = PlayerMoveDown;
+            }else if(location.x<self.frame.size.width*2/5){
+                self.player1MoveType = PlayerMoveUp;
+            }else if(location.x<self.frame.size.width*3/5){
+                self.player1MoveType = PlayerCharge;
+            }else if(location.x<self.frame.size.width*4/5){
+                self.player1MoveType = PlayerFire;
+            }else if(location.x<self.frame.size.width*5/5){
+                self.player1MoveType = PlayerGuard;
+            }
+        }
+        if (location.y>self.frame.size.height/2) {
+            if (location.x<self.frame.size.width*1/5) {
+                self.eMoveType = EGuard;
+            }else if(location.x<self.frame.size.width*2/5){
+                self.eMoveType = EFire;
+            }else if(location.x<self.frame.size.width*3/5){
+                self.eMoveType = PlayerCharge;
+            }else if(location.x<self.frame.size.width*4/5){
+                self.eMoveType = EMoveDown;
+            }else if(location.x<self.frame.size.width*5/5){
+                self.eMoveType = EMoveUp;
+            }
+        }
+        
+    }else{
+        if (location.y<=self.frame.size.height) {
+            if (location.x<self.frame.size.width*1/5) {
+                self.player1MoveType = PlayerMoveDown;
+            }else if(location.x<self.frame.size.width*2/5){
+                self.player1MoveType = PlayerMoveUp;
+            }else if(location.x<self.frame.size.width*3/5){
+                self.player1MoveType = PlayerCharge;
+            }else if(location.x<self.frame.size.width*4/5){
+                self.player1MoveType = PlayerFire;
+            }else if(location.x<self.frame.size.width*5/5){
+                self.player1MoveType = PlayerGuard;
+            }
+        }
+    }
+
 }
 
 #pragma mark - Input
