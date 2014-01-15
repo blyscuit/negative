@@ -254,11 +254,11 @@ typedef enum EnermyMoveType{
     SKSpriteNode *enemyControl = [SKSpriteNode spriteNodeWithImageNamed:@"battle.png"];
     enemyControl.size=CGSizeMake(self.frame.size.width, 50);
     enemyControl.color = [UIColor redColor];
-    SKAction *rotate = [SKAction scaleXTo:-1. y:-1. duration:0.0];
+    enemyControl.xScale = -1;
+    enemyControl.yScale = -1;
     enemyControl.alpha=.5;
     enemyControl.position=CGPointMake(CGRectGetMidX(self.frame), self.frame.size.height+enemyControl.size.height);
     enemyControl.name = @"enemyControl";
-    [enemyControl runAction:rotate];
     [self addChild:enemyControl];
 }
 
@@ -350,15 +350,30 @@ typedef enum EnermyMoveType{
             [control runAction:moveIn];
             self.playerTouchLocation = location;
             if (location.x<self.frame.size.width*1/5) {
-                self.player1MoveType = PlayerMoveDown;
+                if (self.player1MoveType!=PlayerMoveDown) {
+                    self.player1MoveType = PlayerMoveDown;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Down.png"]]];
+                }
             }else if(location.x<self.frame.size.width*2/5){
-                self.player1MoveType = PlayerMoveUp;
+                if (self.player1MoveType != PlayerMoveUp) {
+                    self.player1MoveType = PlayerMoveUp;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Up.png"]]];
+                }
             }else if(location.x<self.frame.size.width*3/5){
-                self.player1MoveType = PlayerCharge;
+                if (self.player1MoveType != PlayerCharge){
+                    self.player1MoveType = PlayerCharge;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Plus.png"]]];
+                }
             }else if(location.x<self.frame.size.width*4/5){
-                self.player1MoveType = PlayerFire;
+                if (self.player1MoveType != PlayerFire){
+                    self.player1MoveType = PlayerFire;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neg.png"]]];
+                }
             }else if(location.x<self.frame.size.width*5/5){
-                self.player1MoveType = PlayerGuard;
+                if (self.player1MoveType != PlayerGuard){
+                    self.player1MoveType = PlayerGuard;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neu.png"]]];
+                }
             }
         }
         if (location.y>self.frame.size.height/2) {
@@ -369,15 +384,30 @@ typedef enum EnermyMoveType{
             [control runAction:moveIn];
             self.playerTouchLocation = location;
             if (location.x<self.frame.size.width*1/5) {
-                self.eMoveType = EGuard;
+                if (self.eMoveType != EGuard){
+                    self.eMoveType = EGuard;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Neu.png"]]];
+                }
             }else if(location.x<self.frame.size.width*2/5){
-                self.eMoveType = EFire;
+                if (self.eMoveType != EFire){
+                    self.eMoveType = EFire;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Neg.png"]]];
+                }
             }else if(location.x<self.frame.size.width*3/5){
-                self.eMoveType = PlayerCharge;
+                if (self.eMoveType != PlayerCharge){
+                    self.eMoveType = PlayerCharge;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Plus.png"]]];
+                }
             }else if(location.x<self.frame.size.width*4/5){
-                self.eMoveType = EMoveDown;
+                if (self.eMoveType != EMoveDown){
+                    self.eMoveType = EMoveDown;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Up.png"]]];
+                }
             }else if(location.x<self.frame.size.width*5/5){
-                self.eMoveType = EMoveUp;
+                if (self.eMoveType != EMoveUp){
+                    self.eMoveType = EMoveUp;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Down.png"]]];
+                }
             }
 
         }
@@ -389,15 +419,30 @@ typedef enum EnermyMoveType{
             [control runAction:moveIn];
             self.playerTouchLocation = location;
             if (location.x<self.frame.size.width*1/5) {
-                self.player1MoveType = PlayerMoveDown;
+                if (self.player1MoveType!=PlayerMoveDown) {
+                    self.player1MoveType = PlayerMoveDown;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Down.png"]]];
+                }
             }else if(location.x<self.frame.size.width*2/5){
-                self.player1MoveType = PlayerMoveUp;
+                if (self.player1MoveType != PlayerMoveUp) {
+                    self.player1MoveType = PlayerMoveUp;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Up.png"]]];
+                }
             }else if(location.x<self.frame.size.width*3/5){
-                self.player1MoveType = PlayerCharge;
+                if (self.player1MoveType != PlayerCharge){
+                    self.player1MoveType = PlayerCharge;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Plus.png"]]];
+                }
             }else if(location.x<self.frame.size.width*4/5){
-                self.player1MoveType = PlayerFire;
+                if (self.player1MoveType != PlayerFire){
+                    self.player1MoveType = PlayerFire;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neg.png"]]];
+                }
             }else if(location.x<self.frame.size.width*5/5){
-                self.player1MoveType = PlayerGuard;
+                if (self.player1MoveType != PlayerGuard){
+                    self.player1MoveType = PlayerGuard;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neu.png"]]];
+                }
             }
         }
     }
@@ -442,44 +487,92 @@ typedef enum EnermyMoveType{
     
     if (multiMode) {
         if (location.y<=self.frame.size.height/2) {
+            SKNode *control = [self childNodeWithName:@"playerControl"];
             if (location.x<self.frame.size.width*1/5) {
-                self.player1MoveType = PlayerMoveDown;
+                if (self.player1MoveType!=PlayerMoveDown) {
+                    self.player1MoveType = PlayerMoveDown;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Down.png"]]];
+                }
             }else if(location.x<self.frame.size.width*2/5){
-                self.player1MoveType = PlayerMoveUp;
+                if (self.player1MoveType != PlayerMoveUp) {
+                    self.player1MoveType = PlayerMoveUp;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Up.png"]]];
+                }
             }else if(location.x<self.frame.size.width*3/5){
-                self.player1MoveType = PlayerCharge;
+                if (self.player1MoveType != PlayerCharge){
+                    self.player1MoveType = PlayerCharge;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Plus.png"]]];
+                }
             }else if(location.x<self.frame.size.width*4/5){
-                self.player1MoveType = PlayerFire;
+                if (self.player1MoveType != PlayerFire){
+                    self.player1MoveType = PlayerFire;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neg.png"]]];
+                }
             }else if(location.x<self.frame.size.width*5/5){
-                self.player1MoveType = PlayerGuard;
+                if (self.player1MoveType != PlayerGuard){
+                    self.player1MoveType = PlayerGuard;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neu.png"]]];
+                }
             }
         }
         if (location.y>self.frame.size.height/2) {
+            SKNode *control = [self childNodeWithName:@"enemyControl"];
             if (location.x<self.frame.size.width*1/5) {
-                self.eMoveType = EGuard;
+                if (self.eMoveType != EGuard){
+                    self.eMoveType = EGuard;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Neu.png"]]];
+                }
             }else if(location.x<self.frame.size.width*2/5){
-                self.eMoveType = EFire;
+                if (self.eMoveType != EFire){
+                    self.eMoveType = EFire;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Neg.png"]]];
+                }
             }else if(location.x<self.frame.size.width*3/5){
-                self.eMoveType = PlayerCharge;
+                if (self.eMoveType != PlayerCharge){
+                    self.eMoveType = PlayerCharge;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Plus.png"]]];
+                }
             }else if(location.x<self.frame.size.width*4/5){
-                self.eMoveType = EMoveDown;
+                if (self.eMoveType != EMoveDown){
+                    self.eMoveType = EMoveDown;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Up.png"]]];
+                }
             }else if(location.x<self.frame.size.width*5/5){
-                self.eMoveType = EMoveUp;
+                if (self.eMoveType != EMoveUp){
+                    self.eMoveType = EMoveUp;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Down.png"]]];
+                }
             }
         }
         
     }else{
         if (location.y<=self.frame.size.height) {
+            SKNode *control = [self childNodeWithName:@"playerControl"];
             if (location.x<self.frame.size.width*1/5) {
-                self.player1MoveType = PlayerMoveDown;
+                if (self.player1MoveType!=PlayerMoveDown) {
+                    self.player1MoveType = PlayerMoveDown;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Down.png"]]];
+                }
             }else if(location.x<self.frame.size.width*2/5){
-                self.player1MoveType = PlayerMoveUp;
+                if (self.player1MoveType != PlayerMoveUp) {
+                    self.player1MoveType = PlayerMoveUp;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Up.png"]]];
+                }
             }else if(location.x<self.frame.size.width*3/5){
-                self.player1MoveType = PlayerCharge;
+                if (self.player1MoveType != PlayerCharge){
+                    self.player1MoveType = PlayerCharge;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Plus.png"]]];
+                }
             }else if(location.x<self.frame.size.width*4/5){
-                self.player1MoveType = PlayerFire;
+                if (self.player1MoveType != PlayerFire){
+                    self.player1MoveType = PlayerFire;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neg.png"]]];
+                }
             }else if(location.x<self.frame.size.width*5/5){
-                self.player1MoveType = PlayerGuard;
+                if (self.player1MoveType != PlayerGuard){
+                    self.player1MoveType = PlayerGuard;
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neu.png"]]];
+                }
             }
         }
     }
@@ -537,6 +630,7 @@ typedef enum EnermyMoveType{
 }
 
 -(void)readPlayer1Move{
+    
     
     switch (self.player1MoveType) {
         
@@ -721,6 +815,10 @@ typedef enum EnermyMoveType{
     [self readPlayerFire];
     
     [self readEnemyFire];
+    
+    
+    SKNode *control = [self childNodeWithName:@"playerControl"];
+    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"battle.png"]]];
     
     self.player1MoveType = none;
     self.eMoveType = ENone;
