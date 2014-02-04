@@ -9,12 +9,25 @@
 #import "StartScene.h"
 #import "MyScene.h"
 #import "ClassicScene.h"
+#import "OptionScene.h"
+
+@interface StartScene()
+
+@property CGPoint location;
+
+@end
 
 @implementation StartScene
+
+@synthesize location,maxLife,breakAble,saveArray;
 
 -(id)initWithSize:(CGSize)size {
     if (self = [super initWithSize:size]) {
         /* Setup your scene here */
+        
+        [self createPlistForFirstTime];
+        [self readNumbersFromFile];
+        
         
         self.backgroundColor = [SKColor colorWithWhite:0.92 alpha:1.0];
         
@@ -46,6 +59,12 @@
         classicButton.zPosition = 1.0f;
         [self addChild:classicButton];
         
+        SKSpriteNode *classicMButton = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:.7 green:0.7 blue:0.7 alpha:.7] size:CGSizeMake(30, 30)];//insert picture here?
+        classicMButton.position = CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame)-170);
+        classicMButton.name = @"classicMButton";
+        classicMButton.zPosition = 1.0f;
+        [self addChild:classicMButton];
+        
         SKSpriteNode *redBrick = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:1.0 green:0.5 blue:0.5 alpha:1.0] size:CGSizeMake(20, 20)];
         redBrick.position=CGPointMake(40,40);
         redBrick.name = @"redBrick";
@@ -66,15 +85,72 @@
         whiteBrick.name = @"whiteBrick";
         [self addChild:whiteBrick];
         
+        if (maxLife <=0) {
+            maxLife =2;
+        }
+        
+        
     }
     return self;
 }
+
+#pragma mark - Data
+-(NSString*)dataFilePath{
+    return [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)objectAtIndex:0]stringByAppendingPathComponent:@"Property.plist"];
+    //return [[NSBundle mainBundle] pathForResource:@"datafile" ofType:@"plist"];
+}
+
+-(void)createPlistForFirstTime{
+    NSFileManager *defFM = [NSFileManager defaultManager];
+	NSString *docsDir = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,NSUserDomainMask, YES) objectAtIndex:0];
+	NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+    //..Stuff that is done only once when installing a new version....
+	static NSString *AppVersionKey = @"MyAppVersion";
+	int lastVersion = [userDefaults integerForKey: AppVersionKey];
+	if( lastVersion != 1.0 )	//..do this only once after install..
+	{
+		[userDefaults setInteger: 1.0 forKey: AppVersionKey];
+		NSString *appDir = [[NSBundle mainBundle] resourcePath];
+		NSString *src = [appDir stringByAppendingPathComponent: @"Property.plist"];
+		NSString *dest = [docsDir stringByAppendingPathComponent: @"Property.plist"];
+		[defFM removeItemAtPath: dest error: NULL];  //..remove old copy
+		[defFM copyItemAtPath: src toPath: dest error: NULL];
+	}
+    //..end of stuff done only once when installing a new version.
+}
+
+-(void)readNumbersFromFile{
+    //NSLog(@"content= %@ from %@",[NSArray arrayWithContentsOfFile:[self dataFilePath]],[self dataFilePath]);
+    if(!saveArray){
+        //NSLog(@"created");
+        saveArray = [NSMutableArray array];
+    }
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    
+    if (![fileManager fileExistsAtPath: [self dataFilePath]])
+    {
+        NSString *bundle = [[NSBundle mainBundle] pathForResource:@"datafile" ofType:@"plist"];
+        [fileManager copyItemAtPath:bundle toPath: [self dataFilePath] error:nil];
+    }
+    saveArray = [NSMutableArray arrayWithContentsOfFile:[self dataFilePath]];
+    
+    maxLife = [[saveArray objectAtIndex:0]intValue];
+    breakAble = [[saveArray objectAtIndex:1]intValue];
+    
+}
+
+-(IBAction)saveData{
+    
+    [saveArray writeToFile:[self dataFilePath] atomically:YES];
+}
+
+#pragma mark - Touch
 
 -(void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
     /* Called when a touch begins */
     
     UITouch *touch = [touches anyObject];
-    CGPoint location = [touch locationInNode:self];
+    location = [touch locationInNode:self];
     SKNode *node = [self nodeAtPoint:location];
     
     
@@ -86,6 +162,8 @@
         gameScene.scaleMode = SKSceneScaleModeAspectFill;
         gameScene.multiMode = NO;
         gameScene.touchLocation = location;
+        gameScene.guardBreak = breakAble;
+        gameScene.maxLives = maxLife;
         [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65]];
         
     }else if ([node.name isEqualToString:@"multiButton"]) {
@@ -96,6 +174,8 @@
         gameScene.scaleMode = SKSceneScaleModeAspectFill;
         gameScene.multiMode = YES;
         gameScene.touchLocation = location;
+        gameScene.guardBreak = breakAble;
+        gameScene.maxLives = maxLife;
         [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65f]];
         
     }else if ([node.name isEqualToString:@"classicButton"]) {
@@ -108,6 +188,29 @@
         gameScene.touchLocation = location;
         [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65f]];
         
+    }else if ([node.name isEqualToString:@"classicMButton"]) {
+        [self runAction:[SKAction playSoundFileNamed:@"wood3.m4a" waitForCompletion:NO]];
+        
+        [self nodesDisappear];
+        ClassicScene* gameScene = [[ClassicScene alloc] initWithSize:self.size];
+        gameScene.scaleMode = SKSceneScaleModeAspectFill;
+        gameScene.multiMode = YES;
+        gameScene.touchLocation = location;
+        [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65f]];
+        
+    }
+}
+
+-(void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event{
+    UITouch *touch = [touches anyObject];
+    CGPoint dragLocation = [touch locationInNode:self];
+    
+    if (dragLocation.x-location.x>150) {
+        OptionScene *optionS = [[OptionScene alloc]initWithSize:self.size];
+        optionS.scaleMode = SKSceneScaleModeAspectFill;
+        optionS.maxLives = maxLife;
+        optionS.shield = breakAble;
+        [self.view presentScene:optionS transition:[SKTransition pushWithDirection:SKTransitionDirectionRight duration:0.8]];
     }
 }
 

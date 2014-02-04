@@ -12,6 +12,7 @@
 
 @property BOOL multiMode;
 @property CGPoint touchLocation;
-
+@property NSInteger maxLives;
+@property BOOL guardBreak;
 
 @end

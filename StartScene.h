@@ -10,4 +10,8 @@
 
 @interface StartScene : SKScene
 
+@property NSInteger maxLife;
+@property BOOL breakAble;
+@property NSMutableArray *saveArray;
+
 @end
