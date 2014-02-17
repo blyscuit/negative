@@ -14,12 +14,14 @@
 @interface StartScene()
 
 @property CGPoint location;
+@property BOOL classic;
+@property BOOL loadMusic;
 
 @end
 
 @implementation StartScene
 
-@synthesize location,maxLife,breakAble,saveArray;
+@synthesize location,maxLife,breakAble,saveArray,classic,loadMusic;
 
 -(id)initWithSize:(CGSize)size {
     if (self = [super initWithSize:size]) {
@@ -28,7 +30,18 @@
         [self createPlistForFirstTime];
         [self readNumbersFromFile];
         
+        classic = NO;
+        loadMusic=NO;
+        [self runAction:[SKAction waitForDuration:2.]completion:^{
+            loadMusic=YES;
+        }];
+        [self checkClassic];
         
+        SKSpriteNode *world = [SKSpriteNode spriteNodeWithImageNamed:@"LaunchImage.png"];
+        world.size=CGSizeMake(self.frame.size.width, self.frame.size.height);
+        world.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+        world.zPosition=-1;
+        [self addChild:world];
         self.backgroundColor = [SKColor colorWithWhite:0.92 alpha:1.0];
         
         
@@ -144,6 +157,17 @@
     [saveArray writeToFile:[self dataFilePath] atomically:YES];
 }
 
+-(void)checkClassic{
+    if ([[saveArray objectAtIndex:2]intValue]==1) {
+        //ANIMATION HERE
+        [saveArray replaceObjectAtIndex:2 withObject:[NSNumber numberWithInt:2]];
+        [self saveData];
+    }if([[saveArray objectAtIndex:2]intValue]==2) {
+        classic=YES;
+        
+    }
+}
+
 #pragma mark - Touch
 
 -(void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
@@ -228,6 +252,9 @@
 }
 
 -(void)brickDance:(NSInteger)brickNumber withTime:(CFTimeInterval*)currentTime{
+    if (!loadMusic) {
+        return;
+    }
     SKAction * dance = [SKAction sequence:@[[SKAction moveToY:50 duration:0.15],[SKAction moveToY:40 duration:0.15]]];
     NSString *brickName;
     switch (brickNumber) {

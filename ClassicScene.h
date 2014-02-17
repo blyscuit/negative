@@ -8,7 +8,7 @@
 
 #import <SpriteKit/SpriteKit.h>
 
-@interface ClassicScene : SKScene
+@interface ClassicScene : SKScene <SKPhysicsContactDelegate>
 
 @property BOOL multiMode;
 @property CGPoint touchLocation;

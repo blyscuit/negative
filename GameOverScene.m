@@ -30,14 +30,14 @@
 
 - (void)createContent
 {
-    SKLabelNode* gameOverLabel = [SKLabelNode labelNodeWithFontNamed:@"Courier"];
+    SKLabelNode* gameOverLabel = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Light"];
     gameOverLabel.fontSize = 50;
     gameOverLabel.fontColor = [SKColor whiteColor];
     gameOverLabel.text = @"Game Over!";
     gameOverLabel.position = CGPointMake(self.size.width/2, 2.0 / 3.0 * self.size.height);
     [self addChild:gameOverLabel];
     
-    SKLabelNode* tapLabel = [SKLabelNode labelNodeWithFontNamed:@"Courier"];
+    SKLabelNode* tapLabel = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Light"];
     tapLabel.fontSize = 25;
     tapLabel.fontColor = [SKColor whiteColor];
     tapLabel.text = @"(Tap to Play Again)";

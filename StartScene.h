@@ -15,3 +15,12 @@
 @property NSMutableArray *saveArray;
 
 @end
+
+
+/*from .plist
+
+0=live
+1=shield
+2=classic
+3=level
+*/

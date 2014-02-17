@@ -64,6 +64,8 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 
 @property BOOL gameBegin;
 
+@property BOOL animationMode;
+
 @property NSString *myParticlePath;
 @property SKEmitterNode *magicParticle;
 
@@ -71,10 +73,12 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 @property NSInteger playerCharge;
 @property BOOL playerGuardable;
 @property CGPoint playerTouchLocation;
+@property NSInteger playerShieldCharge;
 
 @property BOOL eGuardable;
 @property NSInteger eCharge;
 @property CGPoint enemyTouchLocation;
+@property NSInteger eShieldCharge;
 
 @end
 
@@ -86,6 +90,9 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     if (!self.contentCreated) {
         [self createContent];
         self.contentCreated = YES;
+        
+        
+        self.physicsWorld.contactDelegate = self;
     }
 }
 
@@ -103,6 +110,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     self.playerPosition = 1;
     self.playerCharge = 0;
     self.playerGuardable = YES;
+    self.playerShieldCharge = 0;
     
     [self setupPlayerButton];
     
@@ -110,6 +118,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     self.enemyPosition = 2;
     self.eCharge = 0;
     self.eGuardable=YES;
+    self.eShieldCharge=0;
     if(multiMode)[self setupEnemyButton];
     
     self.player1MoveType = none;
@@ -117,6 +126,8 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     
     self.gameBegin = NO;
     
+    
+    self.animationMode=NO;
     
     [self createBetaTester];
 }
@@ -134,13 +145,20 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     [moveToStart setTimingMode:SKActionTimingEaseIn];
     [scale setTimingMode:SKActionTimingEaseIn];
     player.name = @"player";
-    [player runAction:[SKAction sequence:@[moveToStart,scale]]];
+    [player runAction:[SKAction sequence:@[moveToStart,scale]] completion:^{
+        player.physicsBody = [SKPhysicsBody bodyWithRectangleOfSize:player.frame.size];
+        player.physicsBody.dynamic = NO;
+        player.physicsBody.categoryBitMask = kPlayerCategory;
+        
+        player.physicsBody.contactTestBitMask = kEnemyProjectileCategory;
+    }];
     [player runAction:alpha];
+    
     [self addChild:player];
 }
 
 -(void)setupPlayerButton{
-    SKSpriteNode *playerControl = [SKSpriteNode spriteNodeWithImageNamed:@"battle.png" ];
+    SKSpriteNode *playerControl = [SKSpriteNode spriteNodeWithImageNamed:@"battleC.png" ];
     playerControl.size=CGSizeMake(self.frame.size.width, 50);
     playerControl.color =[UIColor blueColor];
     playerControl.alpha=.5;
@@ -160,15 +178,20 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     [alpha setTimingMode:SKActionTimingEaseIn];
     [moveToStart setTimingMode:SKActionTimingEaseIn];
     [scale setTimingMode:SKActionTimingEaseIn];
-    [enemy runAction:[SKAction sequence:@[moveToStart,scale]]];
-    [enemy runAction:alpha];
+    [enemy runAction:[SKAction sequence:@[moveToStart,scale]] completion:^{
+        enemy.physicsBody = [SKPhysicsBody bodyWithRectangleOfSize:enemy.frame.size];
+        enemy.physicsBody.dynamic = NO;
+        enemy.physicsBody.categoryBitMask = kEnemyCategory;
+        
+        enemy.physicsBody.contactTestBitMask = kPlayerProjectileCategory;
+    }];[enemy runAction:alpha];
     enemy.name = @"enemy";
     
     [self addChild:enemy];
 }
 
 -(void)setupEnemyButton{
-    SKSpriteNode *enemyControl = [SKSpriteNode spriteNodeWithImageNamed:@"battle.png"];
+    SKSpriteNode *enemyControl = [SKSpriteNode spriteNodeWithImageNamed:@"battleC.png"];
     enemyControl.size=CGSizeMake(self.frame.size.width, 50);
     enemyControl.color = [UIColor redColor];
     enemyControl.xScale = -1;
@@ -248,33 +271,23 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             [control runAction:fade];
             [control runAction:moveIn];
             self.playerTouchLocation = location;
-            if (location.x<self.frame.size.width*1/5) {
-                if (self.player1MoveType!=PlayerMoveDown) {
-                    self.player1MoveType = PlayerMoveDown;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Down.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*2/5){
-                if (self.player1MoveType != PlayerMoveUp) {
-                    self.player1MoveType = PlayerMoveUp;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Up.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*3/5){
+            if(location.x<self.frame.size.width*1/3){
                 if (self.player1MoveType != PlayerCharge){
                     self.player1MoveType = PlayerCharge;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Plus.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1PlusC.png"]]];
                 }
-            }else if(location.x<self.frame.size.width*4/5){
+            }else if(location.x<self.frame.size.width*2/3){
                 if (self.player1MoveType != PlayerFire){
                     self.player1MoveType = PlayerFire;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neg.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1NegC.png"]]];
                 }
-            }else if(location.x<self.frame.size.width*5/5){
+            }else if(location.x<self.frame.size.width*3/3){
                 if (self.player1MoveType != PlayerGuard){
                     if (!self.playerGuardable) {
                         return;
                     }
                     self.player1MoveType = PlayerGuard;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neu.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1NeuC.png"]]];
                 }
             }
         }
@@ -285,33 +298,23 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             [control runAction:fade];
             [control runAction:moveIn];
             self.playerTouchLocation = location;
-            if (location.x<self.frame.size.width*1/5) {
+            if (location.x<self.frame.size.width*1/3) {
                 if (self.eMoveType != EGuard){
                     if (!self.eGuardable) {
                         return;
                     }
                     self.eMoveType = EGuard;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Neu.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2NeuC.png"]]];
                 }
-            }else if(location.x<self.frame.size.width*2/5){
+            }else if(location.x<self.frame.size.width*2/3){
                 if (self.eMoveType != EFire){
                     self.eMoveType = EFire;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Neg.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2NegC.png"]]];
                 }
-            }else if(location.x<self.frame.size.width*3/5){
+            }else if(location.x<self.frame.size.width*3/3){
                 if (self.eMoveType != PlayerCharge){
                     self.eMoveType = PlayerCharge;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Plus.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*4/5){
-                if (self.eMoveType != EMoveDown){
-                    self.eMoveType = EMoveDown;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Up.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*5/5){
-                if (self.eMoveType != EMoveUp){
-                    self.eMoveType = EMoveUp;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Down.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2PlusC.png"]]];
                 }
             }
             
@@ -323,33 +326,23 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             SKAction *moveIn = [SKAction moveToY:control.frame.size.height/2 duration:0.2];
             [control runAction:moveIn];
             self.playerTouchLocation = location;
-            if (location.x<self.frame.size.width*1/5) {
-                if (self.player1MoveType!=PlayerMoveDown) {
-                    self.player1MoveType = PlayerMoveDown;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Down.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*2/5){
-                if (self.player1MoveType != PlayerMoveUp) {
-                    self.player1MoveType = PlayerMoveUp;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Up.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*3/5){
+            if(location.x<self.frame.size.width*1/3){
                 if (self.player1MoveType != PlayerCharge){
                     self.player1MoveType = PlayerCharge;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Plus.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1PlusC.png"]]];
                 }
-            }else if(location.x<self.frame.size.width*4/5){
+            }else if(location.x<self.frame.size.width*2/3){
                 if (self.player1MoveType != PlayerFire){
                     self.player1MoveType = PlayerFire;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neg.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1NegC.png"]]];
                 }
-            }else if(location.x<self.frame.size.width*5/5){
+            }else if(location.x<self.frame.size.width*3/3){
                 if (self.player1MoveType != PlayerGuard){
                     if (!self.playerGuardable) {
                         return;
                     }
                     self.player1MoveType = PlayerGuard;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neu.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1NeuC.png"]]];
                 }
             }
         }
@@ -396,65 +389,45 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     if (multiMode) {
         if (location.y<=self.frame.size.height/2) {
             SKNode *control = [self childNodeWithName:@"playerControl"];
-            if (location.x<self.frame.size.width*1/5) {
-                if (self.player1MoveType!=PlayerMoveDown) {
-                    self.player1MoveType = PlayerMoveDown;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Down.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*2/5){
-                if (self.player1MoveType != PlayerMoveUp) {
-                    self.player1MoveType = PlayerMoveUp;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Up.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*3/5){
+            if(location.x<self.frame.size.width*1/3){
                 if (self.player1MoveType != PlayerCharge){
                     self.player1MoveType = PlayerCharge;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Plus.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1PlusC.png"]]];
                 }
-            }else if(location.x<self.frame.size.width*4/5){
+            }else if(location.x<self.frame.size.width*2/3){
                 if (self.player1MoveType != PlayerFire){
                     self.player1MoveType = PlayerFire;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neg.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1NegC.png"]]];
                 }
-            }else if(location.x<self.frame.size.width*5/5){
+            }else if(location.x<self.frame.size.width*3/3){
                 if (self.player1MoveType != PlayerGuard){
                     if (!self.playerGuardable) {
                         return;
                     }
                     self.player1MoveType = PlayerGuard;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neu.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1NeuC.png"]]];
                 }
             }
         }
         if (location.y>self.frame.size.height/2) {
             SKNode *control = [self childNodeWithName:@"enemyControl"];
-            if (location.x<self.frame.size.width*1/5) {
+            if (location.x<self.frame.size.width*1/3) {
                 if (self.eMoveType != EGuard){
                     if (!self.eGuardable) {
                         return;
                     }
                     self.eMoveType = EGuard;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Neu.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2NeuC.png"]]];
                 }
-            }else if(location.x<self.frame.size.width*2/5){
+            }else if(location.x<self.frame.size.width*2/3){
                 if (self.eMoveType != EFire){
                     self.eMoveType = EFire;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Neg.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2NegC.png"]]];
                 }
-            }else if(location.x<self.frame.size.width*3/5){
+            }else if(location.x<self.frame.size.width*3/3){
                 if (self.eMoveType != PlayerCharge){
                     self.eMoveType = PlayerCharge;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Plus.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*4/5){
-                if (self.eMoveType != EMoveDown){
-                    self.eMoveType = EMoveDown;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Up.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*5/5){
-                if (self.eMoveType != EMoveUp){
-                    self.eMoveType = EMoveUp;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Down.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2PlusC.png"]]];
                 }
             }
         }
@@ -462,33 +435,23 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     }else{
         if (location.y<=self.frame.size.height) {
             SKNode *control = [self childNodeWithName:@"playerControl"];
-            if (location.x<self.frame.size.width*1/5) {
-                if (self.player1MoveType!=PlayerMoveDown) {
-                    self.player1MoveType = PlayerMoveDown;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Down.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*2/5){
-                if (self.player1MoveType != PlayerMoveUp) {
-                    self.player1MoveType = PlayerMoveUp;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Up.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*3/5){
+            if(location.x<self.frame.size.width*1/3){
                 if (self.player1MoveType != PlayerCharge){
                     self.player1MoveType = PlayerCharge;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Plus.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1PlusC.png"]]];
                 }
-            }else if(location.x<self.frame.size.width*4/5){
+            }else if(location.x<self.frame.size.width*2/3){
                 if (self.player1MoveType != PlayerFire){
                     self.player1MoveType = PlayerFire;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neg.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1NegC.png"]]];
                 }
-            }else if(location.x<self.frame.size.width*5/5){
+            }else if(location.x<self.frame.size.width*3/3){
                 if (self.player1MoveType != PlayerGuard){
                     if (!self.playerGuardable) {
                         return;
                     }
                     self.player1MoveType = PlayerGuard;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neu.png"]]];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1NeuC.png"]]];
                 }
             }
         }
@@ -507,15 +470,15 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             SKNode *player = [self childNodeWithName:@"player"];
             SKNode *enemy = [self childNodeWithName:@"enemy"];
             
-            SKSpriteNode *projectile = [SKSpriteNode spriteNodeWithColor:[UIColor clearColor] size:CGSizeMake(0,0)];
+            SKSpriteNode *projectile = [SKSpriteNode spriteNodeWithColor:[UIColor clearColor] size:CGSizeMake(1,1)];
             projectile.alpha = 1.0;
-            projectile.position=CGPointMake(0,-player.frame.size.height/2);
-            projectile.name = @"proj";
+            projectile.position=CGPointMake(0,player.frame.size.height*2/3);
+            projectile.name = @"pproj";
             projectile.zPosition =0;
             
             SKAction *magicFade = [SKAction sequence:@[
-                                                       [SKAction moveTo:CGPointMake(enemy.position.x-player.position.x, enemy.position.y-player.position.y-60) duration:0.7],
-                                                       [SKAction waitForDuration:0.1],
+                                                       //[SKAction moveTo:CGPointMake(enemy.position.x-player.position.x, enemy.position.y-player.position.y-60) duration:0.7],
+                                                       [SKAction waitForDuration:0.9],
                                                        [SKAction removeFromParent]]];
             [magicFade setTimingMode:SKActionTimingEaseIn];
             [projectile runAction:magicFade completion:^{
@@ -545,13 +508,30 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                 self.playerCharge =0;
             }];
             
+            projectile.physicsBody = [SKPhysicsBody bodyWithRectangleOfSize:projectile.frame.size];
+            projectile.physicsBody.dynamic = YES;
+            projectile.physicsBody.affectedByGravity = NO;
+            projectile.physicsBody.collisionBitMask = kShieldCategory;
+            projectile.physicsBody.categoryBitMask = kPlayerProjectileCategory;
+            
+            projectile.physicsBody.contactTestBitMask = kEnemyProjectileCategory;
+            
+            
+            projectile.physicsBody.friction = 0.0f;
+            projectile.physicsBody.restitution = 1.0f;
+            projectile.physicsBody.linearDamping = 0.0f;
+            projectile.physicsBody.allowsRotation = NO;
+            
             [player addChild:projectile];
+            
+            [projectile.physicsBody applyImpulse:CGVectorMake(.0, .0065)];
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"magic" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            self.magicParticle.particlePosition = CGPointMake(0,player.frame.size.height*2/3);
+            self.magicParticle.particlePosition = CGPointMake(0,0);
             self.magicParticle.zPosition =1.5;
             self.magicParticle.particleAction = magicFade;
+            self.magicParticle.targetNode=player;
             [projectile addChild:self.magicParticle];
             
             break;
@@ -702,14 +682,24 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             SKSpriteNode *shield = [SKSpriteNode spriteNodeWithColor:[UIColor yellowColor] size:CGSizeMake(70, 5)];
             shield.alpha=0.7;
             shield.position = CGPointMake(0, 35);
+            shield.name = @"shield";
             [shield setScale:0.0];
             SKAction *switchOn = [SKAction sequence:@[[SKAction scaleXTo:0.3 y:1.0 duration:0.1],
-                                                      [SKAction scaleXTo:1.0 duration:0.1],
-                                                      [SKAction waitForDuration:1.0],
-                                                      [SKAction scaleXTo:0.0 duration:0.1],
-                                                      [SKAction removeFromParent]]];
+                                                      [SKAction scaleXTo:1.0 duration:0.1]]];
             [switchOn setTimingMode:SKActionTimingEaseInEaseOut];
-            [shield runAction:switchOn];
+            [shield runAction:switchOn completion:^{
+                shield.physicsBody = [SKPhysicsBody bodyWithRectangleOfSize:shield.frame.size];
+                shield.physicsBody.dynamic = YES;
+                shield.physicsBody.affectedByGravity = NO;
+                shield.physicsBody.categoryBitMask = kShieldCategory;
+                shield.physicsBody.contactTestBitMask = kEnemyProjectileCategory;
+                shield.physicsBody.collisionBitMask = kEnemyProjectileCategory;
+                
+                [shield runAction:[SKAction sequence:@[[SKAction waitForDuration:1.0],
+                                                      [SKAction scaleXTo:0.0 duration:0.1],
+                                                       [SKAction removeFromParent]]]];
+            }];
+            
             [player addChild:shield];
         }
             
@@ -728,15 +718,15 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             SKNode *player = [self childNodeWithName:@"enemy"];
             SKNode *enemy = [self childNodeWithName:@"player"];
             
-            SKSpriteNode *projectile = [SKSpriteNode spriteNodeWithColor:[UIColor clearColor] size:CGSizeMake(0,0)];
+            SKSpriteNode *projectile = [SKSpriteNode spriteNodeWithColor:[UIColor clearColor] size:CGSizeMake(1,1)];
             projectile.alpha = 1.0;
-            projectile.position=CGPointMake(0,-player.frame.size.height/2);
-            projectile.name = @"proj";
+            projectile.position=CGPointMake(0,-player.frame.size.height*2/3);
+            projectile.name = @"eproj";
             projectile.zPosition =0;
             
             SKAction *magicFade = [SKAction sequence:@[
-                                                       [SKAction moveTo:CGPointMake(0, enemy.position.y-player.position.y+60) duration:0.8],
-                                                       [SKAction waitForDuration:0.1],
+                                                       //[SKAction moveTo:CGPointMake(0, enemy.position.y-player.position.y+60) duration:0.8],
+                                                       [SKAction waitForDuration:0.9],
                                                        [SKAction removeFromParent]]];
             [magicFade setTimingMode:SKActionTimingEaseIn];
             [projectile runAction:magicFade completion:^{
@@ -767,13 +757,28 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                 self.eCharge =0;
             }];
             
+            projectile.physicsBody = [SKPhysicsBody bodyWithRectangleOfSize:projectile.frame.size];
+            projectile.physicsBody.dynamic = YES;
+            projectile.physicsBody.affectedByGravity = NO;
+            projectile.physicsBody.collisionBitMask = kShieldCategory;
+            projectile.physicsBody.categoryBitMask = kEnemyProjectileCategory;
+            
+            
+            projectile.physicsBody.friction = 0.0f;
+            projectile.physicsBody.restitution = 1.0f;
+            projectile.physicsBody.linearDamping = 0.0f;
+            projectile.physicsBody.allowsRotation = NO;
+            
             [player addChild:projectile];
+            
+            [projectile.physicsBody applyImpulse:CGVectorMake(.0, -.0065)];
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"magic" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            self.magicParticle.particlePosition = CGPointMake(0,-player.frame.size.height*2/3);
+            self.magicParticle.particlePosition = CGPointMake(0,0);
             self.magicParticle.zPosition =1.5;
             self.magicParticle.particleAction = magicFade;
+            self.magicParticle.targetNode = player;
             [projectile addChild:self.magicParticle];
             
             break;
@@ -891,18 +896,93 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             shield.alpha=0.7;
             shield.position = CGPointMake(0, -35);
             [shield setScale:0.0];
+            shield.name = @"shield";
             SKAction *switchOn = [SKAction sequence:@[[SKAction scaleXTo:0.3 y:1.0 duration:0.1],
-                                                      [SKAction scaleXTo:1.0 duration:0.1],
-                                                      [SKAction waitForDuration:1.0],
-                                                      [SKAction scaleXTo:0.0 duration:0.1],
-                                                      [SKAction removeFromParent]]];
+                                                      [SKAction scaleXTo:1.0 duration:0.1]]];
             [switchOn setTimingMode:SKActionTimingEaseInEaseOut];
-            [shield runAction:switchOn];
+            [shield runAction:switchOn completion:^{
+                shield.physicsBody = [SKPhysicsBody bodyWithRectangleOfSize:shield.frame.size];
+                shield.physicsBody.dynamic = YES;
+                shield.physicsBody.affectedByGravity = NO;
+                shield.physicsBody.categoryBitMask = kShieldCategory;
+                shield.physicsBody.collisionBitMask = kPlayerProjectileCategory;
+                shield.physicsBody.contactTestBitMask = kPlayerProjectileCategory;
+                
+                [shield runAction:[SKAction sequence:@[[SKAction waitForDuration:1.0],
+                                                       [SKAction scaleXTo:0.0 duration:0.1],
+                                                       [SKAction removeFromParent]]]];
+            }];
+
             [player addChild:shield];
         }
             
         default:
             break;
+    }
+}
+
+-(void)checkShield{
+    if (self.playerGuardable == NO) {
+        if (self.playerShieldCharge<7) {
+            self.playerShieldCharge++;
+        }else{
+            self.playerShieldCharge=0;
+            self.playerGuardable=YES;
+            
+            SKNode *player = [self childNodeWithName:@"player"];
+            SKSpriteNode *shield = [SKSpriteNode spriteNodeWithColor:[UIColor yellowColor] size:CGSizeMake(70, 5)];
+            shield.alpha=0.7;
+            shield.name=@"shield";
+            shield.position = CGPointMake(0, 35);
+            [shield setScale:0.0];
+            SKAction *switchOn = [SKAction sequence:@[[SKAction scaleXTo:0.3 y:1.0 duration:0.1],
+                                                      [SKAction scaleXTo:1.0 duration:0.1]]];
+            [switchOn setTimingMode:SKActionTimingEaseInEaseOut];
+            [shield runAction:switchOn completion:^{
+                shield.physicsBody = [SKPhysicsBody bodyWithRectangleOfSize:shield.frame.size];
+                shield.physicsBody.dynamic = YES;
+                shield.physicsBody.affectedByGravity = NO;
+                shield.physicsBody.categoryBitMask = kShieldCategory;
+                shield.physicsBody.collisionBitMask = kEnemyProjectileCategory;
+                
+                [shield runAction:[SKAction sequence:@[[SKAction waitForDuration:.2],
+                                                       [SKAction scaleXTo:0.0 duration:0.1],
+                                                       [SKAction removeFromParent]]]];
+            }];
+            
+            [player addChild:shield];
+        }
+    }
+    if (self.eGuardable == NO) {
+        if (self.eShieldCharge<7) {
+            self.eShieldCharge++;
+        }else{
+            self.eShieldCharge=0;
+            self.eGuardable=YES;
+            
+            SKNode *player = [self childNodeWithName:@"enemy"];
+            SKSpriteNode *shield = [SKSpriteNode spriteNodeWithColor:[UIColor yellowColor] size:CGSizeMake(70, 5)];
+            shield.alpha=0.7;
+            shield.name = @"shield";
+            shield.position = CGPointMake(0, -35);
+            [shield setScale:0.0];
+            SKAction *switchOn = [SKAction sequence:@[[SKAction scaleXTo:0.3 y:1.0 duration:0.1],
+                                                      [SKAction scaleXTo:1.0 duration:0.1]]];
+            [switchOn setTimingMode:SKActionTimingEaseInEaseOut];
+            [shield runAction:switchOn completion:^{
+                shield.physicsBody = [SKPhysicsBody bodyWithRectangleOfSize:shield.frame.size];
+                shield.physicsBody.dynamic = YES;
+                shield.physicsBody.affectedByGravity = NO;
+                shield.physicsBody.categoryBitMask = kShieldCategory;
+                shield.physicsBody.collisionBitMask = kPlayerProjectileCategory;
+                
+                [shield runAction:[SKAction sequence:@[[SKAction waitForDuration:.2],
+                                                       [SKAction scaleXTo:0.0 duration:0.1],
+                                                       [SKAction removeFromParent]]]];
+            }];
+            
+            [player addChild:shield];
+        }
     }
 }
 
@@ -978,11 +1058,13 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     
     [self readEnemyFire];
     
+    [self checkShield];
+    
     
     SKNode *control = [self childNodeWithName:@"playerControl"];
-    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"battle.png"]]];
+    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"battleC.png"]]];
     control = [self childNodeWithName:@"enemyControl"];
-    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"battle.png"]]];
+    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"battleC.png"]]];
     self.player1MoveType = none;
     self.eMoveType = ENone;
     
@@ -1004,14 +1086,25 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 
 #pragma mark Object Lifecycle Management
 -(void)extraAnimation{
-    
+    self.animationMode=YES;
+    [self setSpeed:0.03];
+    [self runAction:[SKAction playSoundFileNamed:@"C6.m4a" waitForCompletion:NO]];
+    [self runAction:[SKAction waitForDuration:0.02] completion:^{
+        [self setSpeed:1.];
+        self.animationMode=NO;
+    }];
 }
 
 #pragma mark - Scene Update
 
 -(void)update:(CFTimeInterval)currentTime {
     /* Called before each frame is rendered */
-    [self updateForTurnEnds:currentTime];
+    if (self.animationMode) {
+        self.timeOfLastMove = currentTime;
+    }else{
+        
+        [self updateForTurnEnds:currentTime];
+    }
 }
 
 #pragma mark Beta Testing
@@ -1038,6 +1131,50 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                                             [SKAction waitForDuration:0.6]]];
     
     [indicator runAction:change];
+}
+
+#pragma mark - Contact
+
+-(void)didBeginContact:(SKPhysicsContact *)contact{
+    
+    NSArray* nodeNames = @[contact.bodyA.node.name, contact.bodyB.node.name];
+    if ([nodeNames containsObject:@"pproj"]&&[nodeNames containsObject:@"eproj"]) {
+        if (self.playerCharge>self.eCharge) {
+            
+            SKNode* fire = [self childNodeWithName:@"eproj"];
+            if(contact.bodyA.node!=fire){[contact.bodyB.node removeFromParent];}
+            else{[contact.bodyA.node removeFromParent];}
+            
+            self.eCharge =0;
+            
+        }else if (self.playerCharge<self.eCharge){
+            
+            SKNode* fire = [self childNodeWithName:@"pproj"];
+            if(contact.bodyA.node!=fire){[contact.bodyB.node removeFromParent];}
+            else{[contact.bodyA.node removeFromParent];}
+            
+            self.playerCharge =0;
+            
+        }else if(self.playerCharge==self.eCharge){
+            [contact.bodyA.node removeFromParent];
+            [contact.bodyB.node removeFromParent];
+            self.playerCharge =0;
+            self.eCharge =0;
+        }
+    }
+    
+    else if ([nodeNames containsObject:@"pproj"]&&[nodeNames containsObject:@"shield"]) {
+        [self runAction:[SKAction playSoundFileNamed:@"moveE.m4a" waitForCompletion:NO]];
+    }
+    else if ([nodeNames containsObject:@"eproj"]&&[nodeNames containsObject:@"shield"]) {
+        [self runAction:[SKAction playSoundFileNamed:@"moveE.m4a" waitForCompletion:NO]];
+    }
+    else if ([nodeNames containsObject:@"eproj"]&&[nodeNames containsObject:@"player"]&&self.playerUsingType!=PlayerGuard) {
+        [self extraAnimation];
+    }else if ([nodeNames containsObject:@"pproj"]&&[nodeNames containsObject:@"enemy"]&&self.eUsingType!=EGuard) {
+        [self extraAnimation];
+    }
+    
 }
 
 @end

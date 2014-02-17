@@ -12,6 +12,10 @@
 @interface OptionScene()
 @property CGPoint location;
 @property SKLabelNode *live;
+@property BOOL dragLock;
+@property int intCry;
+
+#define kBackGroundColor [UIColor colorWithWhite:0.92 alpha:1.0];
 
 @end
 
@@ -24,19 +28,61 @@
         /* Setup your scene here */
         
         [self readNumbersFromFile];
+        self.intCry=0;
         
-        self.backgroundColor = [SKColor colorWithWhite:0.92 alpha:1.0];
+//        SKSpriteNode *world = [SKSpriteNode spriteNodeWithImageNamed:@"LaunchImage.png"];
+//        world.size=CGSizeMake(self.frame.size.width, self.frame.size.height);
+//        world.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+//        world.zPosition=-1;
+//        [self addChild:world];
+        self.backgroundColor = kBackGroundColor;
         
         
-        SKSpriteNode *redBrick = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:1.0 green:0.5 blue:0.5 alpha:1.0] size:CGSizeMake(40, 40)];
+        SKSpriteNode *redBrick = [SKSpriteNode spriteNodeWithImageNamed:@"PlayerMin.png"];
+        [redBrick runAction:[SKAction colorizeWithColor:[UIColor colorWithRed:1. green:0.5 blue:.5 alpha:1.0] colorBlendFactor:.1 duration:1]];
+        redBrick.size=CGSizeMake(40, 40);
         redBrick.position=CGPointMake(CGRectGetMidX(self.frame)-100,CGRectGetMidY(self.frame));
-        redBrick.name = @"redBrick";
+        redBrick.name = @"redBrick1";
         [self addChild:redBrick];
         
-        SKSpriteNode *blueBrick = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:0.5 green:0.5 blue:1.0 alpha:1.0] size:CGSizeMake(40, 40)];
+        for (int i=0; i<4; i++) {
+            SKSpriteNode *over = [SKSpriteNode spriteNodeWithImageNamed:@"overB.png"];
+            over.size =redBrick.size;
+            [over runAction:[SKAction rotateByAngle:(M_PI/2)*i duration:0]];
+            double random =(((double)arc4random() / 0x100000000)/2);
+            over.alpha =0;
+            SKAction *flick = [SKAction fadeAlphaTo:(((double)arc4random() / 0x100000000)/2) duration:(random+0.5)];
+            //[over runAction:[SKAction repeatActionForever:flick]];
+            [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[flick,[SKAction fadeAlphaTo:0 duration:flick.duration/2]]]]];
+            [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[[SKAction waitForDuration:flick.duration],[SKAction rotateByAngle:-M_PI/2 duration:0]]]]];
+            [redBrick addChild:over];
+        }
+        SKSpriteNode *redBrickO = [SKSpriteNode spriteNodeWithColor:[UIColor clearColor] size:CGSizeMake(40, 40)];
+        redBrickO.name=@"redBrick";
+        [redBrick addChild:redBrickO];
+        
+        SKSpriteNode *blueBrick = [SKSpriteNode spriteNodeWithImageNamed:@"PlayerPlus.png"];
+        [blueBrick runAction:[SKAction colorizeWithColor:[UIColor colorWithRed:0.5 green:0.5 blue:1.0 alpha:1.0] colorBlendFactor:.1 duration:1]];
+        blueBrick.size=CGSizeMake(40, 40);
         blueBrick.position=CGPointMake(CGRectGetMidX(self.frame)+100,CGRectGetMidY(self.frame));
-        blueBrick.name = @"blueBrick";
+        blueBrick.name = @"blueBrick1";
         [self addChild:blueBrick];
+        
+        for (int i=0; i<4; i++) {
+            SKSpriteNode *over = [SKSpriteNode spriteNodeWithImageNamed:@"overB.png"];
+            over.size =blueBrick.size;
+            [over runAction:[SKAction rotateByAngle:(M_PI/2)*i duration:0]];
+            double random =(((double)arc4random() / 0x100000000)/2);
+            over.alpha =0;
+            SKAction *flick = [SKAction fadeAlphaTo:(((double)arc4random() / 0x100000000)/2) duration:(random+0.5)];
+            //[over runAction:[SKAction repeatActionForever:flick]];
+            [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[flick,[SKAction fadeAlphaTo:0 duration:flick.duration/2]]]]];
+            [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[[SKAction waitForDuration:flick.duration],[SKAction rotateByAngle:M_PI/2 duration:0]]]]];
+            [blueBrick addChild:over];
+        }
+        SKSpriteNode *blueBrickO = [SKSpriteNode spriteNodeWithColor:[UIColor clearColor] size:CGSizeMake(40, 40)];
+        blueBrickO.name=@"blueBrick";
+        [blueBrick addChild:blueBrickO];
         
         live = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Light"];
         live.name = @"live";
@@ -72,16 +118,48 @@
         [self addChild:greenBrick2];
         
         SKSpriteNode *whiteBrick = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0] size:CGSizeMake(20, 20)];
-        whiteBrick.position=CGPointMake(100,40);
+        whiteBrick.position=CGPointMake(100,10);
         whiteBrick.name = @"whiteBrick";
-        [self addChild:whiteBrick];
+        whiteBrick.zPosition=2.;
+        SKSpriteNode *over = [SKSpriteNode spriteNodeWithImageNamed:@"tri2.png"];
+        over.size =whiteBrick.size;
+        [over runAction:[SKAction rotateByAngle:(M_PI/2)*3 duration:0]];
+        double random =(((double)arc4random() / 0x100000000)/2);
+        over.alpha =0;
+        SKAction *flick = [SKAction fadeAlphaTo:(((double)arc4random() / 0x100000000)) duration:((random+0.5)*4)];
+        //[over runAction:[SKAction repeatActionForever:flick]];
+        [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[flick,[SKAction fadeAlphaTo:0 duration:flick.duration/2]]]]];
+        [whiteBrick addChild:over];
+        SKSpriteNode *whiteWhite = [SKSpriteNode spriteNodeWithColor:[UIColor clearColor] size:CGSizeMake(30, 30)];
+        whiteWhite.name = @"whiteBrick";
+        [whiteBrick addChild:whiteWhite];
+
+        
+        SKSpriteNode *front = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithWhite:0.92 alpha:1.0] size:CGSizeMake(self.frame.size.width, 80)];
+        front.position=CGPointMake(0,30);
+        front.anchorPoint=CGPointZero;
+        front.name = @"back1";
+        front.zPosition=1.2;
+        [self addChild:front];
+        [front addChild:whiteBrick];
+        
+        SKSpriteNode *back = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:51./255. green:50./255. blue:52./255. alpha:1.] size:CGSizeMake(self.frame.size.width, 80)];
+        back.position=CGPointMake((self.frame.size.width/2),70);
+        back.name = @"back2";
+        [self addChild:back];
+        
+        SKSpriteNode *shade = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:219./255. green:219./255. blue:219./255. alpha:1.] size:CGSizeMake(1, 80)];
+        shade.name=@"shade";
+        shade.position=CGPointMake(-.5, front.frame.size.height/2);
+        shade.zPosition=1.1;
+        [front addChild:shade];
         
         SKSpriteNode *bird = [SKSpriteNode spriteNodeWithImageNamed:@"logo-01.png"];
         bird.size = CGSizeMake(60, 60);
         bird.name=@"bird";
-        bird.position=CGPointMake(400, 40);
-        bird.alpha=.0;
-        [self addChild:bird];
+        bird.position=CGPointMake(back.frame.size.width/2-100, -5);
+        bird.alpha=1.0;
+        [back addChild:bird];
         
     }
     return self;
@@ -127,23 +205,32 @@
     
     if ([node.name isEqualToString:@"redBrick"]) {
         //[self runAction:[SKAction playSoundFileNamed:@"wood1.m4a" waitForCompletion:NO]];
-        if(maxLives>1)
+        if(maxLives>1){
             maxLives--;
+            SKNode *new = [self childNodeWithName:@"redBrick1"];
+            [new runAction:[SKAction colorizeWithColor:[UIColor whiteColor] colorBlendFactor:0.5 duration:.5]];
+        }
         //live.text = [NSString stringWithFormat:@"%i",maxLives];
         
     }else if([node.name isEqualToString:@"blueBrick"]) {
         //[self runAction:[SKAction playSoundFileNamed:@"wood1.m4a" waitForCompletion:NO]];
         maxLives++;
+        
+        SKNode *new = [self childNodeWithName:@"blueBrick1"];
+        [new runAction:[SKAction colorizeWithColor:[UIColor whiteColor] colorBlendFactor:0.5 duration:.5]];
+    
         //live.text = [NSString stringWithFormat:@"%i",maxLives];
     }else if ([node.name isEqualToString:@"whiteBrick"]){
-        SKAction *in = [SKAction group:@[[SKAction fadeAlphaTo:1. duration:0.4],[SKAction moveToX:CGRectGetMidX(self.frame)+100 duration:.3]]];
+        /*SKAction *in = [SKAction group:@[[SKAction fadeAlphaTo:1. duration:0.4],[SKAction moveToX:CGRectGetMidX(self.frame)+100 duration:.3]]];
         SKAction *out = [SKAction group:@[[SKAction fadeAlphaTo:0. duration:.3],[SKAction moveToX:-100 duration:0.4]]];
         in.timingMode = SKActionTimingEaseInEaseOut;
         out.timingMode = SKActionTimingEaseInEaseOut;
         SKNode *bird = [self childNodeWithName:@"bird"];
         [bird runAction:in];
         [node runAction:out];
+        */
         
+        self.dragLock = YES;
     }else if ([node.name isEqualToString:@"greenBrick"]){
         SKAction *gray;
             shield=NO;
@@ -163,10 +250,33 @@
         [white runAction:gray];
         [node runAction:zoom];
     }else if ([node.name isEqualToString:@"bird"]){
-        [self runAction:[SKAction playSoundFileNamed:@"birdcry.m4a" waitForCompletion:NO]];
-        SKAction *jump = [SKAction sequence:@[[SKAction moveByX:0 y:20 duration:0.15],[SKAction moveByX:0 y:-20 duration:.15]]];
-        jump.timingMode = SKActionTimingEaseInEaseOut;
-        [node runAction:[SKAction repeatAction:jump count:2]];
+        
+        if ([node hasActions]) {
+            return;
+        }
+        
+        SKAction *jump = [SKAction sequence:@[[SKAction moveByX:0 y:20 duration:0.12],[SKAction moveByX:0 y:-20 duration:.12],[SKAction moveByX:0 y:20 duration:0.12],[SKAction moveByX:0 y:-20 duration:.12],[SKAction waitForDuration:0.17]]];
+        if (self.intCry<2) {
+            [self runAction:[SKAction playSoundFileNamed:@"birdcry.m4a" waitForCompletion:YES]];
+            jump.timingMode = SKActionTimingEaseInEaseOut;
+            [node runAction:[SKAction repeatAction:jump count:2] completion:^{
+                self.intCry++;
+            }];
+            
+        }else if(self.intCry==2){
+            self.intCry++;
+            [node runAction:[SKAction group:@[[SKAction sequence:@[[SKAction playSoundFileNamed:@"wood1A.m4a" waitForCompletion:NO],[SKAction moveByX:10 y:0 duration:0.12],[SKAction waitForDuration:.2],[SKAction playSoundFileNamed:@"wood1A.m4a" waitForCompletion:NO],[SKAction moveByX:10 y:0 duration:.12]]],jump]]completion:^{
+            }];
+            [node runAction:[SKAction scaleTo:0.8 duration:0]];
+            [node runAction:[SKAction animateWithTextures:@[[SKTexture textureWithImageNamed:@"logoR.png"]] timePerFrame:.0]];
+        }else if (self.intCry>2){
+            self.intCry=0;
+            [node runAction:[SKAction sequence:@[[SKAction moveByX:-10 y:10 duration:0.12],[SKAction moveTo:CGPointMake(self.frame.size.width/2-100, -5) duration:.12]]]completion:^{
+            }];
+            [node runAction:[SKAction scaleTo:1. duration:0]];
+            [node runAction:[SKAction animateWithTextures:@[[SKTexture textureWithImageNamed:@"logo-01.png"]] timePerFrame:.0]];
+        }
+        
     }
 }
 
@@ -178,6 +288,9 @@
         
         [saveArray replaceObjectAtIndex:0 withObject:[NSNumber numberWithInteger:maxLives]];
         [saveArray replaceObjectAtIndex:1 withObject:[NSNumber numberWithBool:shield]];
+        if (self.intCry>2 && [[saveArray objectAtIndex:3]integerValue]<=1) {
+            [saveArray replaceObjectAtIndex:2 withObject:[NSNumber numberWithInteger:1]];
+        }
         [self saveData];
         
         StartScene *startS = [[StartScene alloc]initWithSize:self.size];
@@ -185,6 +298,94 @@
         [self.view presentScene:startS transition:[SKTransition pushWithDirection:SKTransitionDirectionLeft duration:0.8]];
     }
     
+    if (self.dragLock) {
+        if (dragLocation.x-location.x>0) {
+            SKNode *back = [self childNodeWithName:@"back1"];
+            [back runAction:[SKAction moveToX:((dragLocation.x-location.x)) duration:0]];
+        }
+    }
+    
+}
+
+-(void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event{
+    
+    
+    UITouch *touch = [touches anyObject];
+    location = [touch locationInNode:self];
+    
+    SKNode *node = [self nodeAtPoint:location];
+    
+    if ([node.name isEqualToString:@"twitter"]){
+        [self companyPressed:self];
+    }
+    
+    if (self.dragLock) {
+        
+        SKNode *back = [self childNodeWithName:@"back1"];
+        if (back.position.x>self.frame.size.width/2) {
+            SKAction *moveIn = [SKAction moveToX:((self.frame.size.width)+1) duration:0.3];
+            moveIn.timingMode = SKActionTimingEaseOut;
+            [back runAction:moveIn completion:^{
+                
+                [self runAction:[SKAction playSoundFileNamed:@"wood1B.m4a" waitForCompletion:NO]];
+                
+                SKSpriteNode *grey =[SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:93/255. green:91/255. blue:93/255. alpha:1.] size:CGSizeMake(self.frame.size.width, 25)];
+                grey.anchorPoint = CGPointMake(.5,1.);
+                [grey setYScale:0];
+                [grey setAlpha:1];
+                grey.position = CGPointMake(0,-(40));
+                SKAction *pop = [SKAction group:@[[SKAction fadeAlphaTo:1. duration:.1],[SKAction scaleYTo:1. duration:0.1]]];
+                pop.timingMode = SKActionTimingEaseOut;
+                [grey runAction:pop];
+                
+                
+                SKNode *back2 = [self childNodeWithName:@"back2"];
+                
+                [back2 addChild:grey];
+                
+                pop = [SKAction moveByX:0 y:20 duration:0.1];
+                [back2 runAction:pop completion:^{
+                    SKSpriteNode *twitter = [SKSpriteNode spriteNodeWithColor:[UIColor blueColor] size:CGSizeMake(100, 10)];
+                    twitter.position = CGPointMake(0, -grey.frame.size.height/2);
+                    twitter.name=@"twitter";
+                    [grey addChild:twitter];
+                }];
+            }];
+        }else{
+            SKAction *moveIn = [SKAction moveToX:(0) duration:0.3];
+            moveIn.timingMode = SKActionTimingEaseOut;
+            [back runAction:moveIn];
+        }
+    }
+    
+    self.dragLock = NO;
+}
+
+-(IBAction)companyPressed:(id)sender{
+    NSArray *urls = [NSArray arrayWithObjects:
+                     @"twitter://user?screen_name={handle}", // Twitter
+                     @"tweetbot:///user_profile/{handle}", // TweetBot
+                     @"echofon:///user_timeline?{handle}", // Echofon
+                     @"twit:///user?screen_name={handle}", // Twittelator Pro
+                     @"x-seesmic://twitter_profile?twitter_screen_name={handle}", // Seesmic
+                     @"x-birdfeed://user?screen_name={handle}", // Birdfeed
+                     @"tweetings:///user?screen_name={handle}", // Tweetings
+                     @"simplytweet:?link=http://twitter.com/{handle}", // SimplyTweet
+                     @"icebird://user?screen_name={handle}", // IceBird
+                     @"fluttr://user/{handle}", // Fluttr
+                     @"http://twitter.com/{handle}",
+                     nil];
+    
+    UIApplication *application = [UIApplication sharedApplication];
+    
+    for (NSString *candidate in urls) {
+        NSURL *url = [NSURL URLWithString:[candidate stringByReplacingOccurrencesOfString:@"{handle}" withString:@"confusians"]];
+        if ([application canOpenURL:url]) {
+            [application openURL:url];
+            
+            return;
+        }
+    }
 }
 
 -(void)update:(CFTimeInterval)currentTime {
