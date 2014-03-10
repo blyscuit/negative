@@ -6,9 +6,12 @@
 //  Copyright (c) 仏暦2556年 betaescape. All rights reserved.
 //
 
+#import "AppDelegate.h"
 #import "MyScene.h"
 //#import <CoreMotion/CoreMotion.h>
-#import "GameOverScene.h"
+#import "StartScene.h"
+#import <AVFoundation/AVFoundation.h>
+//#import <AudioToolbox/AudioToolbox.h>
 
 
 #pragma mark - Custom Type Definitions
@@ -63,6 +66,8 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 @property EnermyMoveType eUsingType;
 
 @property BOOL gameBegin;
+@property BOOL gameOver;
+@property BOOL gamePause;
 
 @property BOOL animationMode;
 
@@ -71,6 +76,8 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 @property NSString *myParticlePath;
 @property SKEmitterNode *magicParticle;
 @property SKEmitterNode *followParticle;
+@property SKEmitterNode* cubeEmitter;
+@property SKEmitterNode* triEmitter;
 
 //Player1Property
 @property NSInteger playerCharge;
@@ -91,11 +98,13 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 @property UIColor *eColor;
 @property SKLabelNode* eSpeech;
 
+@property AVAudioPlayer *backgroundAudioPlayer;
+
 @end
 
 @implementation MyScene
 
-@synthesize multiMode,touchLocation,maxLives,guardBreak,playerSpeech,eSpeech;
+@synthesize multiMode,touchLocation,maxLives,guardBreak,playerSpeech,eSpeech,backgroundAudioPlayer,cubeEmitter,triEmitter;
 
 -(void)didMoveToView:(SKView *)view{
     if (!self.contentCreated) {
@@ -104,6 +113,9 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         
         
         self.physicsWorld.contactDelegate = self;
+        
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pauseGame:) name:UIApplicationWillResignActiveNotification object:nil];
+        //[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(unPauseGame:)  name:UIApplicationDidBecomeActiveNotification  object:nil];
     }
 }
 
@@ -153,10 +165,14 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     self.eMoveType = none;
     
     self.gameBegin = NO;
+    self.gameOver = NO;
+    self.gamePause = NO;
     
     self.animationMode=NO;
     
     self.turnPassed = 0;
+    
+    [self playBackgroundMusic];
     
     [self createBetaTester];
 }
@@ -281,6 +297,19 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     [self addChild:playerControl];
     
     //[playerControl runAction:[SKAction colorizeWithColor:self.playerColor colorBlendFactor:.2 duration:0]];
+    
+    SKSpriteNode *playerLine = [SKSpriteNode spriteNodeWithImageNamed:@"line.png" ];
+    playerLine.size=self.frame.size;
+    playerLine.alpha=.0;
+    playerLine.zPosition = -0.4;
+    playerLine.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame)-50);
+    playerLine.name = @"playerLine";
+    
+    SKAction *flick = [SKAction fadeAlphaTo:.7 duration:3];
+    [playerLine runAction:[SKAction moveByX:0 y:60 duration:.7]];
+    [playerLine runAction:[SKAction repeatActionForever:[SKAction sequence:@[flick,[SKAction fadeAlphaTo:.1 duration:flick.duration/3]]]]];
+    
+    [self addChild:playerLine];
 }
 
 -(void)setupEnemyWithSize:(CGSize)size Location:(CGPoint)place{
@@ -324,7 +353,6 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         double random =(((double)arc4random() / 0x100000000)/2);
         over.alpha =0;
         SKAction *flick = [SKAction fadeAlphaTo:(((double)arc4random() / 0x100000000)/2) duration:(random+0.5)];
-        //[over runAction:[SKAction repeatActionForever:flick]];
         [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[flick,[SKAction fadeAlphaTo:0 duration:flick.duration/2]]]]];
         [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[[SKAction waitForDuration:flick.duration],[SKAction rotateByAngle:-M_PI/2 duration:0]]]]];
         [enemy addChild:over];
@@ -404,6 +432,20 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     [self addChild:enemyControl];
     
     //[enemyControl runAction:[SKAction colorizeWithColor:self.eColor colorBlendFactor:.2 duration:0]];
+    
+    SKSpriteNode *playerLine = [SKSpriteNode spriteNodeWithImageNamed:@"line.png" ];
+    playerLine.size=self.frame.size;
+    playerLine.alpha=.0;
+    playerLine.zPosition = -0.4;
+    playerLine.yScale=-1;
+    playerLine.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame)+50);
+    playerLine.name = @"playerLine";
+    
+    SKAction *flick = [SKAction fadeAlphaTo:.7 duration:3];
+    [playerLine runAction:[SKAction moveByX:0 y:-60 duration:.7]];
+    [playerLine runAction:[SKAction repeatActionForever:[SKAction sequence:@[flick,[SKAction fadeAlphaTo:.1 duration:flick.duration/3]]]]];
+    
+    [self addChild:playerLine];
 }
 
 -(void)setupContainers{
@@ -449,9 +491,98 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     self.magicParticle.particlePosition = CGPointZero;
     self.magicParticle.zPosition =0.1;
     
-    [self addChild:self.magicParticle];
+    //[self addChild:self.magicParticle];
+    triEmitter = [[SKEmitterNode alloc] init];
+    [triEmitter setParticleTexture:[SKTexture textureWithImageNamed:@"tri2.png"]];
+    [triEmitter setParticleBirthRate:2.4];
+    [triEmitter setParticleScaleRange:.18];
+    [triEmitter setEmissionAngleRange:360];
+    [triEmitter setParticleScale:.2];
+    [triEmitter setParticleSpeedRange:57.37];
+    [triEmitter setParticleLifetimeRange:.184];
+    [triEmitter setParticlePositionRange:CGVectorMake(self.frame.size.width, self.size.height)];
+    [triEmitter setParticleLifetime:.65];
+    [triEmitter setParticleRotationRange:360];
+    [triEmitter setParticleScaleSpeed:.025];
+    [triEmitter setParticleSpeed:127.];
+    [triEmitter setParticleAlphaSpeed:-.3];
+    [triEmitter setParticleAlpha:.67];
+    [triEmitter setParticleAlphaRange:.2];
+    [triEmitter setPosition:CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame))];
+    [triEmitter setParticleBlendMode:SKBlendModeAlpha];
+    [triEmitter setParticleRotationSpeed:360];
+    [triEmitter setParticleColorBlendFactor:.27];
+    [triEmitter setParticleColorBlendFactorRange:.0];
+    [triEmitter setParticleColorBlendFactorSpeed:.8];
+    
+    triEmitter.zPosition=.1;
+    [self addChild:triEmitter];
+    
+    cubeEmitter = [[SKEmitterNode alloc] init];
+    //cubeEmitter=self.magicParticle;
+    [cubeEmitter setParticleTexture:[SKTexture textureWithImageNamed:@"cube.png"]];
+    [cubeEmitter setParticleBirthRate:.8];
+    [cubeEmitter setParticleScaleRange:.08];
+    [cubeEmitter setEmissionAngleRange:360];
+    [cubeEmitter setParticleScale:.16];
+    [cubeEmitter setParticleSpeedRange:57.37];
+    [cubeEmitter setParticleLifetimeRange:.184];
+    [cubeEmitter setParticlePositionRange:CGVectorMake(self.frame.size.width, self.size.height)];
+    [cubeEmitter setParticleLifetime:.65];
+    [cubeEmitter setParticleRotationRange:360];
+    [cubeEmitter setParticleScaleSpeed:.025];
+    [cubeEmitter setParticleSpeed:127.];
+    [cubeEmitter setParticleAlphaSpeed:-.9];
+    [cubeEmitter setParticleAlpha:.67];
+    [cubeEmitter setParticleAlphaRange:.2];
+    [cubeEmitter setPosition:CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame))];
+    [cubeEmitter setParticleBlendMode:SKBlendModeAlpha];
+    [cubeEmitter setParticleColorBlendFactor:.5];
+    [cubeEmitter setParticleColorBlendFactorRange:.2];
+    [cubeEmitter setParticleColorBlendFactorSpeed:2.];
+    
+    cubeEmitter.zPosition=.1;
+    
+    //self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"cube" ofType:@"sks"];
+    //cubeEmitter = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
+    //cubeEmitter.particlePosition = CGPointZero;
+    //cubeEmitter.zPosition =0.1;
+    
+    [self addChild:cubeEmitter];
 }
 
+-(void)playBackgroundMusic{
+    
+    NSError *err;
+    NSURL *file = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"un-tive.caf" ofType:nil]];
+    backgroundAudioPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:file error:&err];
+    if (err) {
+        NSLog(@"error in audio play %@",[err userInfo]);
+        return;
+    }
+    [backgroundAudioPlayer prepareToPlay];
+    
+    // this will play the music infinitely
+    backgroundAudioPlayer.numberOfLoops = -1;
+    [backgroundAudioPlayer setVolume:.0];
+    [backgroundAudioPlayer play];
+    
+    [self doVolumeFadeIn];
+}
+
+-(void)doVolumeFadeIn {
+    if (backgroundAudioPlayer.volume < 0.9) {
+        backgroundAudioPlayer.volume = backgroundAudioPlayer.volume + 0.02;
+        [self performSelector:@selector(doVolumeFadeIn) withObject:nil afterDelay:0.1];
+    }
+}
+
+-(void)doVolumeFadeOut {
+    if (backgroundAudioPlayer.volume > 0.0) {
+        backgroundAudioPlayer.volume = backgroundAudioPlayer.volume - 0.1;
+        [self performSelector:@selector(doVolumeFadeOut) withObject:nil afterDelay:0.1];
+    }
+}
 
 
 -(id)initWithSize:(CGSize)size {    
@@ -465,21 +596,16 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 
 -(void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
     /* Called when a touch begins
-    
-    for (UITouch *touch in touches) {
-        CGPoint location = [touch locationInNode:self];
-        
-        SKSpriteNode *sprite = [SKSpriteNode spriteNodeWithImageNamed:@"Spaceship"];
-        
-        sprite.position = location;
-        
-        SKAction *action = [SKAction rotateByAngle:M_PI duration:1];
-        
-        [sprite runAction:[SKAction repeatActionForever:action]];
-        
-        [self addChild:sprite];
-    }
      */
+    
+    if (!self.gameBegin&&!multiMode) {
+        [self beginGame];
+        return;
+    }
+    
+    if(self.gamePause||self.gameOver){
+        return;
+    }
     
     UITouch *touch = [touches anyObject];
     CGPoint location = [touch locationInNode:self];
@@ -629,6 +755,34 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 -(void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event{
     UITouch *touch = [touches anyObject];
     CGPoint location = [touch locationInNode:self];
+    
+    SKNode *node = [self nodeAtPoint:location];//NSLog(@"%@",node.name);
+    if ([node.name isEqualToString:@"end"]) {
+        [self runAction:[SKAction playSoundFileNamed:@"wood2.m4a" waitForCompletion:NO]];
+        SKNode *control = [self childNodeWithName:@"enemyControl"];
+        [control runAction:[SKAction fadeAlphaTo:.0 duration:0.01]];
+        control = [self childNodeWithName:@"playerControl"];
+        [control runAction:[SKAction fadeAlphaTo:.0 duration:0.01]completion:^{
+            [self changeScene];
+        }];
+    }
+    
+    else if ([node.name isEqualToString:@"unPause"]) {
+        [self runAction:[SKAction playSoundFileNamed:@"wood3B.m4a" waitForCompletion:NO]];
+        SKNode *pauser=[self childNodeWithName:@"pauser"];
+        [pauser runAction:[SKAction fadeAlphaTo:.0 duration:0.2] completion:^{
+            
+            self.gamePause=NO;
+            
+            [pauser removeAllActions];
+            [pauser removeFromParent];
+        }];
+    }
+    
+    if(self.gamePause||self.gameOver){
+        return;
+    }
+    
     if (multiMode) {
         if (location.y<=self.frame.size.height/2) {
             SKNode *control = [self childNodeWithName:@"playerControl"];
@@ -655,12 +809,24 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             self.playerTouchLocation = location;
         }
     }
+    
+    
 }
 
 -(void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event{
     
+    if(self.gamePause||self.gameOver){
+        return;
+    }
+    
     UITouch *touch = [touches anyObject];
     CGPoint location = [touch locationInNode:self];
+    
+    
+    if (!self.gameBegin&&multiMode&&touches.count>=2) {
+        [self beginGame];
+        return;
+    }
     
     if (multiMode) {
         if (location.y<=self.frame.size.height/2) {
@@ -774,7 +940,8 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                                          [SKAction scaleTo:1. duration:0.07],
                                          [SKAction scaleBy:0.49 duration:0.1],
                                          [SKAction scaleTo:1. duration:0.1],
-                                         [SKAction scaleBy:0.49 duration:0.15]]];
+                                         [SKAction scaleBy:0.49 duration:0.15],
+                                         [SKAction waitForDuration:.05]]];
     
     self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"self" ofType:@"sks"];
     self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
@@ -789,23 +956,23 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         
         if ([Enemy.name isEqualToString:@"player"]) {
             
-            [self setupPlayerWithSize:kSecondPlayerSize Location:Enemy.position];
-            
             self.playerLive--;
             if (self.playerLive<=0) {
-                [self endGame];
+                [self endGame:Enemy];
                 return;
             }
-        }else if ([Enemy.name isEqualToString:@"enemy"]){
             
-            [self setupEnemyWithSize:kSecondPlayerSize Location:Enemy.position];
+            [self setupPlayerWithSize:kSecondPlayerSize Location:Enemy.position];
+        }else if ([Enemy.name isEqualToString:@"enemy"]){
             
             self.eLive--;
             if (self.eLive<=0) {
-                [self endGame];
+                [self endGame:Enemy];
                 return;
             }
+            [self setupEnemyWithSize:kSecondPlayerSize Location:Enemy.position];
         }
+        
         [Enemy removeFromParent];
     }];
     
@@ -916,6 +1083,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                 self.playerCharge =0;
             }];
             
+            projectile.speed = 2/self.timePerMove;
             [player addChild:projectile];
             
             
@@ -1309,6 +1477,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                 self.eCharge =0;
             }];
             
+            projectile.speed = 2/self.timePerMove;
             [player addChild:projectile];
             
             for (int i=0; i<maxFire; i++) {
@@ -1690,8 +1859,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 #pragma mark Debug Mode
     //self.timePerMove =2.;
     if (currentTime - self.timeOfLastMove < self.timePerMove) return;
-    if (!self.gameBegin) {
-        self.gameBegin=YES;
+    if (!self.gameBegin||self.gameOver||self.gamePause) {
         self.timeOfLastMove=currentTime;
         return;
     }
@@ -1740,7 +1908,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     if (self.timePerMove<1.) {
         return;
     }
-    else if (self.timePerMove<1.2){
+    else if (self.timePerMove<1.25){
         self.speed=self.speed*1.001;
         self.timePerMove = self.timePerMove/self.speed;
         
@@ -1751,16 +1919,152 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     self.speed=self.speed*pow(1.0005,self.turnPassed);
     self.timePerMove = self.timePerMove/self.speed;
     NSLog(@"%f",self.timePerMove);
+    
 }
 
--(void)endGame{
-    [self removeAllActions];
+-(void)endGame:(SKNode*)loser{
+    if(self.gameOver)return;
+    
+    [loser removeAllActions];
+    [loser removeFromParent];
+    
+    SKNode *pauser=[self childNodeWithName:@"pauser"];
+    [pauser runAction:[SKAction fadeAlphaTo:.0 duration:0.2] completion:^{
+        
+        self.gamePause=NO;
+        
+        [pauser removeAllActions];
+        [pauser removeFromParent];
+    }];
+
+    self.gameOver=YES;
+    
+    __block SKAction *effectPop = [SKAction group:@[[SKAction sequence:@[[SKAction scaleTo:.0 duration:.0],[SKAction scaleTo:1.1 duration:.4],[SKAction scaleTo:1. duration:.2]]],[SKAction sequence:@[[SKAction fadeAlphaTo:0.0 duration:0],[SKAction fadeAlphaTo:0.7 duration:.6]]]]];
+    
+    SKSpriteNode *back = [SKSpriteNode spriteNodeWithColor:[UIColor whiteColor] size:self.frame.size];
+    back.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+    back.alpha=.0;
+    back.zPosition=3.2;
+    [back runAction:[SKAction fadeAlphaTo:0.5 duration:.2]];
+    [self addChild:back];
+    
+    SKShapeNode *ball = [[SKShapeNode alloc] init];
+    
+    CGMutablePathRef myPath = CGPathCreateMutable();
+    CGPathAddArc(myPath, NULL, 0,0, 55, 0, M_PI*2, YES);
+    ball.path = myPath;
+    ball.position=back.position;
+    ball.name=@"end";
+    ball.lineWidth = 1.0;
+    ball.fillColor = [SKColor whiteColor];
+    ball.strokeColor = [SKColor whiteColor];
+    ball.glowWidth = 0.0;
+    ball.alpha=.0;
+    ball.zPosition=3.3;
+    [ball runAction:[SKAction fadeAlphaTo:0.6 duration:.6]];
+    [self addChild:ball];
+    
+    SKSpriteNode *player = [SKSpriteNode spriteNodeWithImageNamed:@"PlayerWhite.png"];
+    if ([loser.name isEqualToString:@"enemy"])
+        [player runAction:[SKAction colorizeWithColor:self.playerColor colorBlendFactor:.8 duration:0]];
+    else if ([loser.name isEqualToString:@"player"])
+        [player runAction:[SKAction colorizeWithColor:self.eColor colorBlendFactor:.8 duration:0]];
+    player.size =CGSizeMake(75, 75);
+    player.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+    player.name = @"end";
+    player.zPosition=4.;
+    SKAction *rotation = [SKAction sequence:@[[SKAction rotateByAngle:(double)(1+((arc4random()% 10))/3) duration:(((double)arc4random() / 0x100000000)+0.3)*2.],[SKAction rotateToAngle:(double)(arc4random()/ 0x100000000)*M_2_PI duration:(((double)arc4random() / 0x100000000)+0.15)*3.]]];
+    [player runAction:[SKAction repeatActionForever:rotation]];
+    [player runAction:[SKAction rotateToAngle:(double)(arc4random()/ 0x100000000)*M_2_PI duration:0.0]];
+    [player runAction:effectPop completion:^{
+        self.speed=0.5;
+    }];
+    [self addChild:player];
+    for (int i=0; i<4; i++) {
+        SKSpriteNode *over = [SKSpriteNode spriteNodeWithImageNamed:@"over.png"];
+        over.size =player.size;
+        [over runAction:[SKAction rotateByAngle:(M_PI/2)*i duration:0]];
+        double random =(((double)arc4random() / 0x100000000)/2);
+        over.alpha =0;
+        over.name=@"end";
+        SKAction *flick = [SKAction fadeAlphaTo:(((double)arc4random() / 0x100000000)/2) duration:(random+0.5)];
+        //[over runAction:[SKAction repeatActionForever:flick]];
+        [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[flick,[SKAction fadeAlphaTo:0 duration:flick.duration/2]]]]];
+        [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[[SKAction waitForDuration:flick.duration],[SKAction rotateByAngle:M_PI/2 duration:0]]]]];
+        [player addChild:over];
+    }
+    
+    SKSpriteNode *spinner = [SKSpriteNode spriteNodeWithImageNamed:@"spinnerLogo.png"];
+    [spinner runAction:[SKAction colorizeWithColor:self.eColor colorBlendFactor:1. duration:0]];
+    spinner.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+    spinner.name = @"spinner";
+    spinner.alpha=0;
+    spinner.size = CGSizeMake(100, 100);
+    spinner.zPosition=3.5;
+    [spinner runAction:[SKAction repeatActionForever:[SKAction rotateByAngle:M_PI*2 duration:.7]]];
+    [spinner runAction:[SKAction fadeAlphaTo:1.0 duration:1.0]];
+    [self addChild:spinner];
+    
+    SKSpriteNode *spinner2 = [SKSpriteNode spriteNodeWithImageNamed:@"spinnerLogo.png"];
+    [spinner2 runAction:[SKAction colorizeWithColor:self.playerColor colorBlendFactor:1. duration:0]];
+    spinner2.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+    spinner2.name = @"spinner";
+    spinner2.size = CGSizeMake(100, 100);
+    spinner2.zPosition=3.5;
+    spinner2.alpha=0;
+    [spinner2 setScale:-1];
+    [spinner2 runAction:[SKAction repeatActionForever:[SKAction rotateByAngle:M_PI*2 duration:.7]]];
+    [spinner2 runAction:[SKAction fadeAlphaTo:1.0 duration:1.0]];
+    [self addChild:spinner2];
+    
+    /*[self removeAllActions];
     [self removeAllChildren];
     
     GameOverScene *gameOverScene =[[GameOverScene alloc]initWithSize:self.size];
     
-    [self.view presentScene:gameOverScene transition:[SKTransition doorsOpenHorizontalWithDuration:0.8]];
+    [self.view presentScene:gameOverScene transition:[SKTransition doorsOpenHorizontalWithDuration:0.8]];*/
     
+}
+
+-(void)changeScene{
+    //[self removeAllActions];
+    //[self removeAllChildren];
+    
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    
+    [self doVolumeFadeOut];
+    
+    StartScene* gameScene = [[StartScene alloc] initWithSize:self.size];
+    gameScene.scaleMode = SKSceneScaleModeAspectFill;
+    [self.view presentScene:gameScene transition:[SKTransition pushWithDirection:SKTransitionDirectionUp duration:0.8]];
+}
+
+-(void)beginGame{
+    self.gameBegin=YES;
+    
+    SKShapeNode *indicator2 = [[SKShapeNode alloc] init];
+    
+    CGMutablePathRef myPath = CGPathCreateMutable();
+    CGPathAddArc(myPath, NULL, 0,0, self.frame.size.height/2, 0, M_PI*2, YES);
+    indicator2.path = myPath;
+    indicator2.name=@"indicatorWC";
+    indicator2.lineWidth = 15.;
+    indicator2.fillColor = [SKColor clearColor];
+    indicator2.strokeColor = [SKColor lightGrayColor];
+    indicator2.glowWidth = .3;
+    indicator2.zPosition=-.2;
+    
+    [indicator2 setScale:0.01];
+    [indicator2 setAlpha:.7];
+    SKAction *appear = [SKAction fadeAlphaTo:0.1 duration:0.4];
+    SKAction *pop = [SKAction scaleTo:1. duration:appear.duration];
+    [indicator2 runAction:appear];
+    [indicator2 runAction:pop completion:^{
+        [indicator2 runAction:[SKAction removeFromParent]];
+    }];
+    indicator2.position = CGPointMake(CGRectGetMidX(self.frame), (CGRectGetMidY(self.frame)));
+    
+    [self addChild:indicator2];
 }
 
 #pragma mark - Contact
@@ -1870,6 +2174,20 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         [self updateForTurnEnds:currentTime];
     }
     //[self playerAnimation];
+    
+    [self changeBackgroundParticleColor];
+}
+
+-(void)changeBackgroundParticleColor{
+    if (arc4random()%2==0){
+        
+        //[cubeEmitter setParticleColor:[UIColor colorWithHue:drand48() saturation:1.0 brightness:1.0 alpha:1.0]];
+        [triEmitter setParticleColor:[UIColor colorWithHue:drand48() saturation:1.0 brightness:1.0 alpha:1.0]];
+        [cubeEmitter setParticleColor:self.playerColor];
+    }else{
+        [cubeEmitter setParticleColor:self.eColor];
+    }
+    //[cubeEmitter setParticleColorBlendFactor:1.0];
 }
 
 -(void)playerAnimation{
@@ -1892,20 +2210,206 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     }
 }
 
-#pragma mark Beta Testing
+
+#pragma mark - Status Control
+
+-(void)pauseGame:(NSNotification*)note{
+    if(self.gamePause)return;
+    
+    self.gamePause=YES;
+    NSLog(@"pause");
+    
+    SKNode*pauser=[SKNode node];
+    pauser.position=CGPointZero;
+    pauser.name=@"pauser";
+    [self addChild:pauser];
+    
+    SKSpriteNode *back = [SKSpriteNode spriteNodeWithColor:[UIColor whiteColor] size:self.frame.size];
+    back.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+    back.alpha=.0;
+    back.zPosition=3.2;
+    [back runAction:[SKAction fadeAlphaTo:0.8 duration:.2]];
+    [pauser addChild:back];
+    
+    SKShapeNode *ball = [[SKShapeNode alloc] init];
+    
+    CGMutablePathRef myPath = CGPathCreateMutable();
+    CGPathAddArc(myPath, NULL, 0,0, 55, 0, M_PI*2, YES);
+    ball.path = myPath;
+    ball.position=back.position;
+    ball.name=@"unPause";
+    ball.lineWidth = 1.0;
+    ball.fillColor = [SKColor whiteColor];
+    ball.strokeColor = [SKColor whiteColor];
+    ball.glowWidth = 0.0;
+    ball.alpha=.0;
+    ball.zPosition=3.3;
+    [ball runAction:[SKAction fadeAlphaTo:0.6 duration:.6]];
+    [pauser addChild:ball];
+    
+    SKSpriteNode *player = [SKSpriteNode spriteNodeWithImageNamed:@"pause.png"];
+    //
+    [player runAction:[SKAction colorizeWithColor:[UIColor lightGrayColor] colorBlendFactor:.8 duration:0]];
+    player.size =CGSizeMake(75, 75);
+    player.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+    player.name = @"unPause";
+    player.zPosition=4.;
+    SKAction *rotation = [SKAction sequence:@[[SKAction rotateByAngle:(double)(1+((arc4random()% 10))/3) duration:(((double)arc4random() / 0x100000000)+0.3)*2.],[SKAction rotateToAngle:(double)(arc4random()/ 0x100000000)*M_2_PI duration:(((double)arc4random() / 0x100000000)+0.15)*3.]]];
+    [player runAction:[SKAction repeatActionForever:rotation]];
+    [player runAction:[SKAction rotateToAngle:(double)(arc4random()/ 0x100000000)*M_2_PI duration:0.0]];
+    __block SKAction *effectPop = [SKAction group:@[[SKAction sequence:@[[SKAction scaleTo:.0 duration:.0],[SKAction scaleTo:1.1 duration:.4],[SKAction scaleTo:1. duration:.2]]],[SKAction sequence:@[[SKAction fadeAlphaTo:0.0 duration:0],[SKAction fadeAlphaTo:0.7 duration:.6]]]]];
+    [player runAction:effectPop];
+    [pauser addChild:player];
+    for (int i=0; i<4; i++) {
+        SKSpriteNode *over = [SKSpriteNode spriteNodeWithImageNamed:@"over.png"];
+        over.size =player.size;
+        [over runAction:[SKAction rotateByAngle:(M_PI/2)*i duration:0]];
+        double random =(((double)arc4random() / 0x100000000)/2);
+        over.alpha =0;
+        over.name=@"unPause";
+        SKAction *flick = [SKAction fadeAlphaTo:(((double)arc4random() / 0x100000000)/2) duration:(random+0.5)];
+        //[over runAction:[SKAction repeatActionForever:flick]];
+        [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[flick,[SKAction fadeAlphaTo:0 duration:flick.duration/2]]]]];
+        [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[[SKAction waitForDuration:flick.duration],[SKAction rotateByAngle:M_PI/2 duration:0]]]]];
+        [player addChild:over];
+    }
+    
+    SKSpriteNode *spinner = [SKSpriteNode spriteNodeWithImageNamed:@"spinnerLogo.png"];
+    [spinner runAction:[SKAction colorizeWithColor:self.eColor colorBlendFactor:1. duration:0]];
+    spinner.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+    spinner.name = @"spinner";
+    spinner.alpha=0;
+    spinner.size = CGSizeMake(100, 100);
+    spinner.zPosition=3.5;
+    [spinner runAction:[SKAction repeatActionForever:[SKAction rotateByAngle:M_PI*2 duration:.7]]];
+    [spinner runAction:[SKAction fadeAlphaTo:1.0 duration:1.0]];
+    [pauser addChild:spinner];
+    
+    SKSpriteNode *spinner2 = [SKSpriteNode spriteNodeWithImageNamed:@"spinnerLogo.png"];
+    [spinner2 runAction:[SKAction colorizeWithColor:self.playerColor colorBlendFactor:1. duration:0]];
+    spinner2.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+    spinner2.name = @"spinner";
+    spinner2.size = CGSizeMake(100, 100);
+    spinner2.zPosition=3.5;
+    spinner2.alpha=0;
+    [spinner2 setScale:-1];
+    [spinner2 runAction:[SKAction repeatActionForever:[SKAction rotateByAngle:M_PI*2 duration:.7]]];
+    [spinner2 runAction:[SKAction fadeAlphaTo:1.0 duration:1.0]];
+    [pauser addChild:spinner2];
+    
+    SKSpriteNode *ender = [SKSpriteNode spriteNodeWithImageNamed:@"close.png"];
+    //
+    [ender runAction:[SKAction colorizeWithColor:[UIColor blackColor] colorBlendFactor:.8 duration:0]];
+    ender.size =CGSizeMake(30, 30);
+    ender.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMaxY(self.frame)*3/4);
+    ender.name = @"end";
+    ender.zPosition=4.;
+    [ender runAction:[SKAction repeatActionForever:rotation.reversedAction]];
+    [ender runAction:[SKAction rotateToAngle:(double)(arc4random()/ 0x100000000)*M_2_PI duration:0.0]];
+    [ender runAction:effectPop];
+    [pauser addChild:ender];
+    for (int i=0; i<4; i++) {
+        SKSpriteNode *over = [SKSpriteNode spriteNodeWithImageNamed:@"over.png"];
+        over.size =player.size;
+        [over runAction:[SKAction rotateByAngle:(M_PI/2)*i duration:0]];
+        double random =(((double)arc4random() / 0x100000000)/2);
+        over.alpha =0;
+        over.name=@"end";
+        SKAction *flick = [SKAction fadeAlphaTo:(((double)arc4random() / 0x100000000)/2) duration:(random+0.5)];
+        //[over runAction:[SKAction repeatActionForever:flick]];
+        [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[flick,[SKAction fadeAlphaTo:0 duration:flick.duration/2]]]]];
+        [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[[SKAction waitForDuration:flick.duration],[SKAction rotateByAngle:M_PI/2 duration:0]]]]];
+        [ender addChild:over];
+    }
+    
+    CGMutablePathRef myPath2 = CGPathCreateMutable();
+    SKShapeNode *ballE = [[SKShapeNode alloc] init];
+    CGPathAddArc(myPath2, NULL, 0,0, 22, 0, M_PI*2, YES);
+    ballE.path = myPath2;
+    ballE.position=ender.position;
+    ballE.name=@"end";
+    ballE.lineWidth = 1.0;
+    ballE.fillColor = [SKColor whiteColor];
+    ballE.strokeColor = [SKColor whiteColor];
+    ballE.glowWidth = 0.0;
+    ballE.alpha=.0;
+    ballE.zPosition=3.3;
+    [ballE runAction:[SKAction fadeAlphaTo:0.2 duration:.6]];
+    [pauser addChild:ballE];
+}
+-(void)unPauseGame:(NSNotification*)note{
+}
+
+
+
+#pragma mark - Beta Testing
 
 -(void)createBetaTester{
-    SKSpriteNode *turnIndicator = [SKSpriteNode spriteNodeWithColor:[UIColor whiteColor] size:CGSizeMake(self.frame.size.width, self.frame.size.height*3/4)];
-    turnIndicator.alpha = 0.0;
-    turnIndicator.position=CGPointMake(CGRectGetMidX(self.frame), (CGRectGetMidY(self.frame)));
-    turnIndicator.name = @"indicator";
-    turnIndicator.zPosition =0.5;
-    
-    [self addChild:turnIndicator];
+//    SKSpriteNode *turnIndicator = [SKSpriteNode spriteNodeWithColor:[UIColor whiteColor] size:CGSizeMake(self.frame.size.width, self.frame.size.height*3/4)];
+//    turnIndicator.alpha = 0.0;
+//    turnIndicator.position=CGPointMake(CGRectGetMidX(self.frame), (CGRectGetMidY(self.frame)));
+//    turnIndicator.name = @"indicator";
+//    turnIndicator.zPosition =0.5;
+//    
+//    [self addChild:turnIndicator];
 }
 
 -(void)turnIndicatorGreen{
-    SKNode *indicator = [self childNodeWithName:@"indicator"];
+    
+    SKShapeNode *indicator = [[SKShapeNode alloc] init];
+    
+    CGMutablePathRef myPath = CGPathCreateMutable();
+    CGPathAddArc(myPath, NULL, 0,0, self.frame.size.height/2, 0, M_PI*2, YES);
+    indicator.path = myPath;
+    indicator.name=@"indicatorC";
+    indicator.lineWidth = 15.0;
+    indicator.fillColor = [SKColor clearColor];
+    indicator.strokeColor = [SKColor greenColor];
+    indicator.glowWidth = .3;
+    indicator.zPosition=-.2;
+    
+    [indicator setScale:0.01];
+    [indicator setAlpha:.7];
+    SKAction *appear = [SKAction fadeAlphaTo:0.1 duration:0.4];
+    SKAction *pop = [SKAction scaleTo:1. duration:appear.duration];
+    [appear setTimingMode:SKActionTimingEaseInEaseOut];
+    [pop setTimingMode:SKActionTimingEaseInEaseOut];
+    
+    [indicator runAction:appear];
+    [indicator runAction:pop completion:^{
+        [indicator runAction:[SKAction removeFromParent]];
+    }];
+    indicator.position = CGPointMake(CGRectGetMidX(self.frame), (CGRectGetMidY(self.frame)));
+    
+    [self addChild:indicator];
+    
+    [self runAction:[SKAction waitForDuration:1.] completion:^{
+        SKShapeNode *indicator2 = [[SKShapeNode alloc] init];
+        
+        CGMutablePathRef myPath = CGPathCreateMutable();
+        CGPathAddArc(myPath, NULL, 0,0, self.frame.size.height/2, 0, M_PI*2, YES);
+        indicator2.path = myPath;
+        indicator2.name=@"indicatorWC";
+        indicator2.lineWidth = indicator.lineWidth;
+        indicator2.fillColor = [SKColor clearColor];
+        indicator2.strokeColor = [SKColor lightGrayColor];
+        indicator2.glowWidth = .3;
+        indicator2.zPosition=-.2;
+        
+        [indicator2 setScale:0.01];
+        [indicator2 setAlpha:.7];
+        
+        [indicator2 runAction:appear];
+        [indicator2 runAction:pop completion:^{
+            [indicator2 runAction:[SKAction removeFromParent]];
+        }];
+        indicator2.position = CGPointMake(CGRectGetMidX(self.frame), (CGRectGetMidY(self.frame)));
+        
+        [self addChild:indicator2];
+
+    }];
+    
+    /*SKNode *indicator = [self childNodeWithName:@"indicator"];
     SKAction *change = [SKAction sequence:@[[SKAction colorizeWithColor:[UIColor greenColor] colorBlendFactor:1.0 duration:0.001],
                                             [SKAction fadeAlphaTo:0.7 duration:0.001],
                                             [SKAction fadeAlphaTo:0.0 duration:0.4],
@@ -1916,6 +2420,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                                             [SKAction waitForDuration:0.6]]];
     
     [indicator runAction:change];
+     */
 }
 
 @end

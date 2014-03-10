@@ -7,11 +7,12 @@
 //
 
 #import "ClassicScene.h"
+#import <AVFoundation/AVFoundation.h>
 
 
 #import "MyScene.h"
 //#import <CoreMotion/CoreMotion.h>
-#import "GameOverScene.h"
+#import "StartScene.h"
 
 
 #pragma mark - Custom Type Definitions
@@ -40,7 +41,7 @@ typedef enum EnermyMoveType{
 }EnermyMoveType;
 
 
-static const u_int32_t  kEnemyCategory              = 0x1 << 0;
+static const u_int32_t  kEnemyCategory              = 0x1 <<0;
 static const u_int32_t  kPlayerCategory             = 0x1 <<1;
 static const u_int32_t  kShieldCategory             = 0x1 <<2;
 static const u_int32_t  kEnemyProjectileCategory    = 0x1 <<3;
@@ -63,6 +64,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 @property EnermyMoveType eUsingType;
 
 @property BOOL gameBegin;
+@property BOOL gameOver;
 
 @property BOOL animationMode;
 
@@ -125,6 +127,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     self.eMoveType = none;
     
     self.gameBegin = NO;
+    self.gameOver = NO;
     
     
     self.animationMode=NO;
@@ -187,6 +190,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     }];[enemy runAction:alpha];
     enemy.name = @"enemy";
     
+    enemy.zPosition=0.0;
     [self addChild:enemy];
 }
 
@@ -203,6 +207,13 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 }
 
 -(void)setupContainers{
+
+    SKSpriteNode *world = [SKSpriteNode spriteNodeWithImageNamed:@"lightray.png"];
+    world.size=CGSizeMake(self.frame.size.width, self.frame.size.height);
+    world.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+    world.zPosition=-1;
+    world.name=@"world";
+    [self addChild:world];
 
 }
 
@@ -234,6 +245,10 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
      [self addChild:sprite];
      }
      */
+    if(self.gameOver){
+        [self changeScene];
+        return;
+    }
     
     UITouch *touch = [touches anyObject];
     CGPoint location = [touch locationInNode:self];
@@ -351,8 +366,13 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 }
 
 -(void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event{
+    
     UITouch *touch = [touches anyObject];
     CGPoint location = [touch locationInNode:self];
+    if(self.gameOver){
+        return;
+    }
+    
     if (multiMode) {
         if (location.y<=self.frame.size.height/2) {
             SKNode *control = [self childNodeWithName:@"playerControl"];
@@ -382,6 +402,9 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 }
 
 -(void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event{
+    if(self.gameOver){
+        return;
+    }
     
     UITouch *touch = [touches anyObject];
     CGPoint location = [touch locationInNode:self];
@@ -474,7 +497,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             projectile.alpha = 1.0;
             projectile.position=CGPointMake(0,player.frame.size.height*2/3);
             projectile.name = @"pproj";
-            projectile.zPosition =0;
+            projectile.zPosition =2.;
             
             SKAction *magicFade = [SKAction sequence:@[
                                                        //[SKAction moveTo:CGPointMake(enemy.position.x-player.position.x, enemy.position.y-player.position.y-60) duration:0.7],
@@ -502,7 +525,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                         self.player1MoveType=PlayerGuard;
                         self.eCharge=0;
                     }else{
-                        [self endGame];
+                        [self decreaseLifeOn:enemy];
                     }
                 }
                 self.playerCharge =0;
@@ -520,13 +543,13 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             projectile.physicsBody.friction = 0.0f;
             projectile.physicsBody.restitution = 1.0f;
             projectile.physicsBody.linearDamping = 0.0f;
-            projectile.physicsBody.allowsRotation = NO;
+            //projectile.physicsBody.allowsRotation = NO;
             
             [player addChild:projectile];
             
             [projectile.physicsBody applyImpulse:CGVectorMake(.0, .0065)];
             
-            self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"magic" ofType:@"sks"];
+            self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"magicB" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
             self.magicParticle.particlePosition = CGPointMake(0,0);
             self.magicParticle.zPosition =1.5;
@@ -722,7 +745,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             projectile.alpha = 1.0;
             projectile.position=CGPointMake(0,-player.frame.size.height*2/3);
             projectile.name = @"eproj";
-            projectile.zPosition =0;
+            projectile.zPosition =2.;
             
             SKAction *magicFade = [SKAction sequence:@[
                                                        //[SKAction moveTo:CGPointMake(0, enemy.position.y-player.position.y+60) duration:0.8],
@@ -751,7 +774,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                         self.eUsingType=EGuard;
                         self.playerCharge=0;
                     }else{
-                        [self endGame];
+                        [self decreaseLifeOn:enemy];
                     }
                 }
                 self.eCharge =0;
@@ -767,7 +790,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             projectile.physicsBody.friction = 0.0f;
             projectile.physicsBody.restitution = 1.0f;
             projectile.physicsBody.linearDamping = 0.0f;
-            projectile.physicsBody.allowsRotation = NO;
+            //projectile.physicsBody.allowsRotation = NO;
             
             [player addChild:projectile];
             
@@ -1038,6 +1061,10 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 #pragma mark Debug Mode
     self.timePerMove =2.;
     if (currentTime - self.timeOfLastMove < self.timePerMove) return;
+    if (self.gameOver) {
+        self.timeOfLastMove=currentTime;
+        return;
+    }
     if (!self.gameBegin) {
         self.gameBegin=YES;
         self.timeOfLastMove=currentTime;
@@ -1075,13 +1102,67 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 
 -(void)endGame{
     
-    [self removeAllActions];
+    /*[self removeAllActions];
     [self removeAllChildren];
     
     GameOverScene *gameOverScene =[[GameOverScene alloc]initWithSize:self.size];
     
-    [self.view presentScene:gameOverScene transition:[SKTransition doorsOpenHorizontalWithDuration:0.8]];
+    [self.view presentScene:gameOverScene transition:[SKTransition doorsOpenHorizontalWithDuration:0.8]];*/
     
+    if(self.gameOver)return;
+    
+    AVSpeechSynthesizer *av = [[AVSpeechSynthesizer alloc] init];
+    AVSpeechUtterance *utterance = [[AVSpeechUtterance alloc]initWithString:@"Game Over"];
+    [av speakUtterance:utterance];
+    
+    self.gameOver=YES;
+    
+    SKAction *blink = [SKAction sequence:@[[SKAction fadeAlphaTo:1.0 duration:0.0],[SKAction waitForDuration:.5],[SKAction fadeAlphaTo:0.0 duration:.0],[SKAction waitForDuration:.5]]];
+    
+    if (!multiMode) {
+        SKLabelNode* overLabel;
+        overLabel = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
+        
+        overLabel.name = @"playerSpeech";
+        overLabel.fontSize = 30;
+        
+        overLabel.fontColor = [SKColor blackColor];
+        overLabel.text = [NSString stringWithFormat:@"GAME OVER"];
+        
+        overLabel.position = CGPointMake(CGRectGetMidX(self.frame),CGRectGetMidY(self.frame));
+        [self addChild:overLabel];
+        [overLabel runAction:[SKAction repeatActionForever:blink]];
+
+    }else{
+        for (int i=1; i<=2; i++) {
+            SKLabelNode* overLabel;
+            overLabel = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
+            
+            overLabel.name = @"playerSpeech";
+            overLabel.fontSize = 30;
+            
+            overLabel.fontColor = [SKColor blackColor];
+            overLabel.text = [NSString stringWithFormat:@"GAME OVER"];
+            
+            overLabel.position = CGPointMake(CGRectGetMidX(self.frame),CGRectGetMidY(self.frame)+(pow(-1, i)/2*CGRectGetMidY(self.frame)));
+            [overLabel setScale:pow(-1, i)];
+            [self addChild:overLabel];
+            [overLabel runAction:[SKAction repeatActionForever:blink]];
+        }
+    }
+    
+    
+}
+
+-(void)changeScene{
+    //[self removeAllActions];
+    //[self removeAllChildren];
+    
+    //[[NSNotificationCenter defaultCenter] removeObserver:self];
+    
+    StartScene* gameScene = [[StartScene alloc] initWithSize:self.size];
+    gameScene.scaleMode = SKSceneScaleModeAspectFill;
+    [self.view presentScene:gameScene transition:[SKTransition pushWithDirection:SKTransitionDirectionUp duration:0.8]];
 }
 
 #pragma mark Object Lifecycle Management
@@ -1093,6 +1174,21 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         [self setSpeed:1.];
         self.animationMode=NO;
     }];
+}
+
+-(void)decreaseLifeOn:(SKNode*)Enemy{
+    
+    
+    SKAction *hit = [SKAction sequence:@[[SKAction fadeAlphaTo:.0 duration:0.0],
+                                         [SKAction waitForDuration:.1],
+                                         [SKAction fadeAlphaTo:1.0 duration:.0],
+                                         [SKAction waitForDuration:.1]]];
+    
+    [Enemy runAction:[SKAction repeatAction:hit count:5] completion:^{
+        [self endGame];
+        [Enemy removeFromParent];
+    }];
+    
 }
 
 #pragma mark - Scene Update
@@ -1131,6 +1227,15 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                                             [SKAction waitForDuration:0.6]]];
     
     [indicator runAction:change];
+    
+    
+    double r =(((double)arc4random() / 0x100000000));
+    double b =(((double)arc4random() / 0x100000000));
+    double g =(((double)arc4random() / 0x100000000));
+    
+    SKNode*world=[self childNodeWithName:@"world"];
+    UIColor *randomC =[UIColor colorWithCIColor:[CIColor colorWithRed:r green:g blue:b]];
+    [world runAction:[SKAction sequence:@[[SKAction colorizeWithColor:[UIColor whiteColor] colorBlendFactor:1. duration:0.],[SKAction colorizeWithColor:randomC colorBlendFactor:.7 duration:1.]]]];
 }
 
 #pragma mark - Contact
@@ -1170,8 +1275,11 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         [self runAction:[SKAction playSoundFileNamed:@"moveE.m4a" waitForCompletion:NO]];
     }
     else if ([nodeNames containsObject:@"eproj"]&&[nodeNames containsObject:@"player"]&&self.playerUsingType!=PlayerGuard) {
+        
+        NSLog(@"%f %f",contact.bodyB.node.zPosition,contact.bodyA.node.zPosition);
         [self extraAnimation];
     }else if ([nodeNames containsObject:@"pproj"]&&[nodeNames containsObject:@"enemy"]&&self.eUsingType!=EGuard) {
+        NSLog(@"%f %f",contact.bodyB.node.zPosition,contact.bodyA.node.zPosition);
         [self extraAnimation];
     }
     

@@ -203,12 +203,15 @@
     SKNode *node = [self nodeAtPoint:location];
     
     
+    __block SKAction *effectPop = [SKAction group:@[[SKAction sequence:@[[SKAction scaleTo:.7 duration:.0],[SKAction scaleTo:1.1 duration:.18],[SKAction scaleTo:1. duration:.12]]],[SKAction sequence:@[[SKAction fadeAlphaTo:0.0 duration:0],[SKAction fadeAlphaTo:1.0 duration:.3]]]]];
+    
     if ([node.name isEqualToString:@"redBrick"]) {
         //[self runAction:[SKAction playSoundFileNamed:@"wood1.m4a" waitForCompletion:NO]];
         if(maxLives>1){
             maxLives--;
             SKNode *new = [self childNodeWithName:@"redBrick1"];
-            [new runAction:[SKAction colorizeWithColor:[UIColor whiteColor] colorBlendFactor:0.5 duration:.5]];
+            SKAction *whitening = [SKAction colorizeWithColor:[UIColor whiteColor] colorBlendFactor:0.1 duration:.3];
+            [new runAction:[SKAction sequence:@[whitening.reversedAction,whitening]]];
         }
         //live.text = [NSString stringWithFormat:@"%i",maxLives];
         
@@ -217,7 +220,8 @@
         maxLives++;
         
         SKNode *new = [self childNodeWithName:@"blueBrick1"];
-        [new runAction:[SKAction colorizeWithColor:[UIColor whiteColor] colorBlendFactor:0.5 duration:.5]];
+        SKAction *whitening = [SKAction colorizeWithColor:[UIColor whiteColor] colorBlendFactor:0.1 duration:.3];
+        [new runAction:[SKAction sequence:@[whitening.reversedAction,whitening]]];
     
         //live.text = [NSString stringWithFormat:@"%i",maxLives];
     }else if ([node.name isEqualToString:@"whiteBrick"]){
@@ -255,8 +259,107 @@
             return;
         }
         
+        SKNode *back2 = [self childNodeWithName:@"back2"];
         SKAction *jump = [SKAction sequence:@[[SKAction moveByX:0 y:20 duration:0.12],[SKAction moveByX:0 y:-20 duration:.12],[SKAction moveByX:0 y:20 duration:0.12],[SKAction moveByX:0 y:-20 duration:.12],[SKAction waitForDuration:0.17]]];
         if (self.intCry<2) {
+            
+            
+            if (self.intCry==0) {
+                
+                SKLabelNode *credit = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Regular"];
+                credit.name = @"credit1";
+                credit.fontSize = 9;
+                credit.fontColor = [SKColor whiteColor];
+                credit.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeCenter;
+                credit.text = [NSString stringWithFormat:@"© 2014 CONFUSIAN"];
+                credit.position = CGPointMake(CGRectGetMidX(self.frame)-200,CGRectGetMidY(back2.frame)/2-80);
+                credit.alpha=.0;
+                [back2 addChild:credit];
+                
+                SKLabelNode *credit2 = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Regular"];
+                credit2.name = @"credit2";
+                credit2.fontSize = 14;
+                credit2.fontColor = [SKColor whiteColor];
+                credit2.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeCenter;
+                credit2.text = [NSString stringWithFormat:@"Negative"];
+                credit2.position = CGPointMake(CGRectGetMidX(self.frame)-200,CGRectGetMidY(back2.frame)/2-22);
+                credit2.alpha=.0;
+                [back2 addChild:credit2];
+                
+                SKLabelNode *credit3 = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Regular"];
+                credit3.name = @"credit3";
+                credit3.fontSize = 12;
+                credit3.fontColor = [SKColor whiteColor];
+                credit3.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeCenter;
+                credit3.text = [NSString stringWithFormat:@"@blyscuit"];
+                credit3.position = CGPointMake(CGRectGetMidX(self.frame)-200,CGRectGetMidY(back2.frame)/2-55);
+                credit3.alpha=.0;
+                [back2 addChild:credit3];
+                
+                SKLabelNode *credit8 = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Regular"];
+                credit8.name = @"credit8";
+                credit8.fontSize = 10;
+                credit8.fontColor = [SKColor whiteColor];
+                credit8.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeCenter;
+                credit8.text = [NSString stringWithFormat:@"designed & directed by"];
+                credit8.position = CGPointMake(CGRectGetMidX(self.frame)-200,CGRectGetMidY(back2.frame)/2-40);
+                credit8.alpha=.0;
+                [back2 addChild:credit8];
+                
+                SKLabelNode *credit4 = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Regular"];
+                credit4.name = @"credit4";
+                credit4.fontSize = 10;
+                credit4.fontColor = [SKColor whiteColor];
+                credit4.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeCenter;
+                credit4.text = [NSString stringWithFormat:@"thanks"];
+                credit4.position = CGPointMake(CGRectGetMidX(self.frame)-200,CGRectGetMidY(back2.frame)/2-30);
+                credit4.alpha=.0;
+                [back2 addChild:credit4];
+                
+                SKLabelNode *credit5 = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Regular"];
+                credit5.name = @"credit5";
+                credit5.fontSize = 12;
+                credit5.fontColor = [SKColor whiteColor];
+                credit5.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeCenter;
+                credit5.text = [NSString stringWithFormat:@"Lost Type Co-op(fonts)"];
+                credit5.position = CGPointMake(CGRectGetMidX(self.frame)-200,CGRectGetMidY(back2.frame)/2-42);
+                credit5.alpha=.0;
+                [back2 addChild:credit5];
+                
+                SKLabelNode *credit6 = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Regular"];
+                credit6.name = @"credit6";
+                credit6.fontSize = 12;
+                credit6.fontColor = [SKColor whiteColor];
+                credit6.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeCenter;
+                credit6.text = [NSString stringWithFormat:@"friends & families"];
+                credit6.position = CGPointMake(CGRectGetMidX(self.frame)-200,CGRectGetMidY(back2.frame)/2-54);
+                credit6.alpha=.0;
+                [back2 addChild:credit6];
+                
+                SKLabelNode *credit7 = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Regular"];
+                credit7.name = @"credit7";
+                credit7.fontSize = 12;
+                credit7.fontColor = [SKColor whiteColor];
+                credit7.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeCenter;
+                credit7.text = [NSString stringWithFormat:@"YOU"];
+                credit7.position = CGPointMake(CGRectGetMidX(self.frame)-200,CGRectGetMidY(back2.frame)/2-66);
+                credit7.alpha=.0;
+                [back2 addChild:credit7];
+                
+                [[back2 childNodeWithName:@"credit2"] runAction:effectPop];
+                [[back2 childNodeWithName:@"credit3"] runAction:effectPop];
+                [[back2 childNodeWithName:@"credit1"] runAction:effectPop];
+                [[back2 childNodeWithName:@"credit8"] runAction:effectPop];
+            }else if(self.intCry==1){
+                [[back2 childNodeWithName:@"credit4"] runAction:effectPop];
+                [[back2 childNodeWithName:@"credit5"] runAction:effectPop];
+                [[back2 childNodeWithName:@"credit6"] runAction:effectPop];
+                [[back2 childNodeWithName:@"credit7"] runAction:effectPop];
+                [[back2 childNodeWithName:@"credit2"] runAction:[SKAction fadeAlphaTo:0. duration:0.2]];
+                [[back2 childNodeWithName:@"credit3"] runAction:[SKAction fadeAlphaTo:0. duration:0.2]];
+                [[back2 childNodeWithName:@"credit8"] runAction:[SKAction fadeAlphaTo:0. duration:0.2]];
+            }
+            
             [self runAction:[SKAction playSoundFileNamed:@"birdcry.m4a" waitForCompletion:YES]];
             jump.timingMode = SKActionTimingEaseInEaseOut;
             [node runAction:[SKAction repeatAction:jump count:2] completion:^{
@@ -265,6 +368,14 @@
             
         }else if(self.intCry==2){
             self.intCry++;
+            [[back2 childNodeWithName:@"credit4"] runAction:[SKAction removeFromParent]];
+            [[back2 childNodeWithName:@"credit5"] runAction:[SKAction removeFromParent]];
+            [[back2 childNodeWithName:@"credit1"] runAction:[SKAction removeFromParent]];
+            [[back2 childNodeWithName:@"credit2"] runAction:[SKAction removeFromParent]];
+            [[back2 childNodeWithName:@"credit3"] runAction:[SKAction removeFromParent]];
+            [[back2 childNodeWithName:@"credit6"] runAction:[SKAction removeFromParent]];
+            [[back2 childNodeWithName:@"credit7"] runAction:[SKAction removeFromParent]];
+            [[back2 childNodeWithName:@"credit8"] runAction:[SKAction removeFromParent]];
             [node runAction:[SKAction group:@[[SKAction sequence:@[[SKAction playSoundFileNamed:@"wood1A.m4a" waitForCompletion:NO],[SKAction moveByX:10 y:0 duration:0.12],[SKAction waitForDuration:.2],[SKAction playSoundFileNamed:@"wood1A.m4a" waitForCompletion:NO],[SKAction moveByX:10 y:0 duration:.12]]],jump]]completion:^{
             }];
             [node runAction:[SKAction scaleTo:0.8 duration:0]];
@@ -343,12 +454,43 @@
                 
                 [back2 addChild:grey];
                 
-                pop = [SKAction moveByX:0 y:20 duration:0.1];
+                
+                
+                __block SKAction *effectPop = [SKAction group:@[[SKAction sequence:@[[SKAction scaleTo:.7 duration:.0],[SKAction scaleTo:1.1 duration:.18],[SKAction scaleTo:1. duration:.12]]],[SKAction sequence:@[[SKAction fadeAlphaTo:0.0 duration:0],[SKAction fadeAlphaTo:1.0 duration:.3]]]]];
+                
+                pop = [SKAction sequence:@[[SKAction moveByX:0 y:22 duration:0.1],[SKAction moveByX:0 y:-2 duration:.03]]];
                 [back2 runAction:pop completion:^{
-                    SKSpriteNode *twitter = [SKSpriteNode spriteNodeWithColor:[UIColor blueColor] size:CGSizeMake(100, 10)];
-                    twitter.position = CGPointMake(0, -grey.frame.size.height/2);
+                    SKSpriteNode *twitter = [SKSpriteNode spriteNodeWithImageNamed:@"twitterForNegative.png"];
+                    twitter.size = CGSizeMake(100, 20);
+                    twitter.position = CGPointMake(0, -13);
                     twitter.name=@"twitter";
                     [grey addChild:twitter];
+                    
+                    [twitter setScale:.0];
+                    [twitter runAction:effectPop];
+                    
+                    SKLabelNode *credit8 = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Regular"];
+                    credit8.name = @"credit8";
+                    credit8.fontSize = 10;
+                    credit8.fontColor = [SKColor whiteColor];
+                    credit8.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeCenter;
+                    credit8.text = [NSString stringWithFormat:@"designed & directed by"];
+                    credit8.position = CGPointMake(CGRectGetMidX(self.frame)-200,CGRectGetMidY(back2.frame)/2-40);
+                    credit8.alpha=.0;
+                    [back2 addChild:credit8];
+                    
+                    SKLabelNode *credit3 = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Regular"];
+                    credit3.name = @"credit3";
+                    credit3.fontSize = 12;
+                    credit3.fontColor = [SKColor whiteColor];
+                    credit3.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeCenter;
+                    credit3.text = [NSString stringWithFormat:@"@blyscuit"];
+                    credit3.position = CGPointMake(CGRectGetMidX(self.frame)-200,CGRectGetMidY(back2.frame)/2-55);
+                    credit3.alpha=.0;
+                    [back2 addChild:credit3];
+                    
+                    [credit8 runAction:effectPop];
+                    [credit3 runAction:effectPop];
                 }];
             }];
         }else{

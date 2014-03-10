@@ -8,6 +8,7 @@
 
 #import "ViewController.h"
 #import "StartScene.h"
+#import "MyScene.h"
 
 @implementation ViewController
 
@@ -36,6 +37,8 @@
     
     // Present the scene.
     [skView presentScene:scene];
+    
+    backgroundMusic=YES;
 }
 
 - (BOOL)shouldAutorotate
@@ -65,6 +68,13 @@
 - (void)handleApplicationWillResignActive:(NSNotification*)note
 {
     ((SKView*)self.view).paused = YES;
+    
+    
+    /*SKView * skView = (SKView *)self.view;
+    SKScene * myScene = [StartScene sceneWithSize:skView.bounds.size];
+    if(skView.scene.==myScene){
+        NSLog(@"same");
+    }*/
 }
 
 - (void)handleApplicationDidBecomeActive:(NSNotification*)note

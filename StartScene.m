@@ -32,7 +32,7 @@
         
         classic = NO;
         loadMusic=NO;
-        [self runAction:[SKAction waitForDuration:2.]completion:^{
+        [self runAction:[SKAction waitForDuration:1.]completion:^{
             loadMusic=YES;
         }];
         [self checkClassic];
@@ -41,11 +41,40 @@
         world.size=CGSizeMake(self.frame.size.width, self.frame.size.height);
         world.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
         world.zPosition=-1;
-        [self addChild:world];
+        //[self addChild:world];
         self.backgroundColor = [SKColor colorWithWhite:0.92 alpha:1.0];
         
+        //preload to prevent bug
+        SKAction *preloadC5 = [SKAction playSoundFileNamed:@"C5.caf" waitForCompletion:YES];
         
-        SKSpriteNode *beginButton = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithWhite:0.5 alpha:0.7] size:CGSizeMake(80, 30)];//insert picture here?
+        SKSpriteNode *spinner = [SKSpriteNode spriteNodeWithImageNamed:@"mainLogo.png"];
+        spinner.position=CGPointMake(70,400);
+        spinner.name = @"spinner";
+        spinner.size = CGSizeMake(100, 100);
+        spinner.zPosition=-.5;
+        [spinner runAction:[SKAction repeatActionForever:[SKAction rotateByAngle:M_PI*2 duration:3]]];
+        [self addChild:spinner];
+        
+        SKSpriteNode *cover = [SKSpriteNode spriteNodeWithColor:[UIColor whiteColor] size:CGSizeMake(self.frame.size.width, 90)];
+        cover.name = @"cover";
+        cover.position = CGPointMake(CGRectGetMidX(self.frame), 395);
+        cover.zPosition=-.4;
+        cover.alpha=.0;
+        [cover runAction:[SKAction group:@[[SKAction moveByX:0 y:-15 duration:.6],[SKAction fadeAlphaTo:.6 duration:.6]]]];
+        [self addChild:cover];
+        
+        SKLabelNode* title = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Light"];
+        title.name = @"title";
+        title.fontSize = 21;
+        title.fontColor = [SKColor blackColor];
+        title.text = [NSString stringWithFormat:@"N-egative"];
+        title.position = CGPointMake(0,-title.frame.size.height/2);
+        [cover addChild:title];
+        
+        
+        SKSpriteNode *beginButton = [SKSpriteNode spriteNodeWithImageNamed:@"PlayerWhite.png"];
+        beginButton.size=CGSizeMake(80, 30);
+        [beginButton runAction:[SKAction colorizeWithColor:[UIColor colorWithWhite:.5 alpha:0.7] colorBlendFactor:1. duration:.2]];
         
         /*SKLabelNode *startText = [SKLabelNode labelNodeWithFontNamed:@"Helvatica"];
         startText.fontSize=15;
@@ -59,12 +88,40 @@
         beginButton.name = @"beginButton";
         beginButton.zPosition = 1.0f;
         [self addChild:beginButton];
+        SKSpriteNode *beginLine = [SKSpriteNode spriteNodeWithImageNamed:@"startLine.png"];
+        beginLine.size=CGSizeMake(80, 50);//insert picture here?
+        beginLine.position = CGPointMake(0,0);
+        beginLine.name = @"beginButton";
+        beginLine.zPosition = 1.1f;
+        [beginButton addChild:beginLine];
+        SKLabelNode *startText = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Light"];
+        startText.fontSize=15;
+        startText.fontColor = [SKColor colorWithWhite:0.92 alpha:1.0];
+        startText.text = @"AI";
+        startText.position = CGPointMake(25,-10);
+        startText.zPosition = 1.1f;
+        [beginButton addChild:startText];
         
-        SKSpriteNode *multiButton = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:0.0 green:1.0 blue:1.0 alpha:0.7] size:CGSizeMake(80, 30)];//insert picture here?
+        SKSpriteNode *multiButton = [SKSpriteNode spriteNodeWithImageNamed:@"PlayerWhite.png"];
+        multiButton.size=CGSizeMake(80, 30);//insert picture here?
+        [multiButton runAction:[SKAction colorizeWithColor:[UIColor colorWithRed:0.0 green:1.0 blue:1.0 alpha:0.7] colorBlendFactor:1. duration:.2]];
         multiButton.position = CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame)-50);
         multiButton.name = @"multiButton";
         multiButton.zPosition = 1.0f;
         [self addChild:multiButton];
+        SKSpriteNode *multiLine = [SKSpriteNode spriteNodeWithImageNamed:@"startLine.png"];
+        multiLine.size=CGSizeMake(80, 50);//insert picture here?
+        multiLine.position = CGPointMake(0,0);
+        multiLine.name = @"multiButton";
+        multiLine.zPosition = 1.1f;
+        [multiButton addChild:multiLine];
+        SKLabelNode *multiText = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Light"];
+         multiText.fontSize=15;
+         multiText.fontColor = [SKColor colorWithWhite:0.92 alpha:1.0];
+         multiText.text = @"HU";
+         multiText.position = CGPointMake(25,-10);
+         multiText.zPosition = 1.1f;
+         [multiButton addChild:multiText];
         
         SKSpriteNode *classicButton = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:1.0 green:0.95 blue:0.87 alpha:.7] size:CGSizeMake(30, 30)];//insert picture here?
         classicButton.position = CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame)-120);
@@ -77,26 +134,6 @@
         classicMButton.name = @"classicMButton";
         classicMButton.zPosition = 1.0f;
         [self addChild:classicMButton];
-        
-        SKSpriteNode *redBrick = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:1.0 green:0.5 blue:0.5 alpha:1.0] size:CGSizeMake(20, 20)];
-        redBrick.position=CGPointMake(40,40);
-        redBrick.name = @"redBrick";
-        [self addChild:redBrick];
-        
-        SKSpriteNode *blueBrick = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:0.5 green:0.5 blue:1.0 alpha:1.0] size:CGSizeMake(20, 20)];
-        blueBrick.position=CGPointMake(60,40);
-        blueBrick.name = @"blueBrick";
-        [self addChild:blueBrick];
-        
-        SKSpriteNode *greenBrick = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:0.5 green:1.0 blue:0.5 alpha:1.0] size:CGSizeMake(20, 20)];
-        greenBrick.position=CGPointMake(80,40);
-        greenBrick.name = @"greenBrick";
-        [self addChild:greenBrick];
-        
-        SKSpriteNode *whiteBrick = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0] size:CGSizeMake(20, 20)];
-        whiteBrick.position=CGPointMake(100,40);
-        whiteBrick.name = @"whiteBrick";
-        [self addChild:whiteBrick];
         
         if (maxLife <=0) {
             maxLife =2;
@@ -181,46 +218,18 @@
     if ([node.name isEqualToString:@"beginButton"]) {
         [self runAction:[SKAction playSoundFileNamed:@"wood1.m4a" waitForCompletion:NO]];
         
-        [self nodesDisappear];
-        MyScene* gameScene = [[MyScene alloc] initWithSize:self.size];
-        gameScene.scaleMode = SKSceneScaleModeAspectFill;
-        gameScene.multiMode = NO;
-        gameScene.touchLocation = location;
-        gameScene.guardBreak = breakAble;
-        gameScene.maxLives = maxLife;
-        [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65]];
-        
+        [self nodesDisappearWith:node];
     }else if ([node.name isEqualToString:@"multiButton"]) {
         [self runAction:[SKAction playSoundFileNamed:@"wood3.m4a" waitForCompletion:NO]];
-        
-        [self nodesDisappear];
-        MyScene* gameScene = [[MyScene alloc] initWithSize:self.size];
-        gameScene.scaleMode = SKSceneScaleModeAspectFill;
-        gameScene.multiMode = YES;
-        gameScene.touchLocation = location;
-        gameScene.guardBreak = breakAble;
-        gameScene.maxLives = maxLife;
-        [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65f]];
+        [self nodesDisappearWith:node];
         
     }else if ([node.name isEqualToString:@"classicButton"]) {
         [self runAction:[SKAction playSoundFileNamed:@"wood1.m4a" waitForCompletion:NO]];
-        
-        [self nodesDisappear];
-        ClassicScene* gameScene = [[ClassicScene alloc] initWithSize:self.size];
-        gameScene.scaleMode = SKSceneScaleModeAspectFill;
-        gameScene.multiMode = NO;
-        gameScene.touchLocation = location;
-        [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65f]];
+        [self nodesDisappearWith:node];
         
     }else if ([node.name isEqualToString:@"classicMButton"]) {
         [self runAction:[SKAction playSoundFileNamed:@"wood3.m4a" waitForCompletion:NO]];
-        
-        [self nodesDisappear];
-        ClassicScene* gameScene = [[ClassicScene alloc] initWithSize:self.size];
-        gameScene.scaleMode = SKSceneScaleModeAspectFill;
-        gameScene.multiMode = YES;
-        gameScene.touchLocation = location;
-        [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65f]];
+        [self nodesDisappearWith:node];
         
     }
 }
@@ -238,64 +247,127 @@
     }
 }
 
--(void)nodesDisappear{
-    SKAction *scale = [SKAction scaleTo:0.1 duration:0.3];
-    SKAction *color = [SKAction colorizeWithColor:[UIColor whiteColor] colorBlendFactor:0.8 duration:0.3];
+-(void)nodesDisappearWith:(SKNode*)node{
+    SKAction *scale = [SKAction scaleYTo:0.1 duration:0.05];
+    SKAction *color = [SKAction colorizeWithColor:[UIColor whiteColor] colorBlendFactor:0.8 duration:0.22];
     SKNode *player = [self childNodeWithName:@"beginButton"];
     SKNode *enemy  = [self childNodeWithName:@"multiButton"];
     [scale setTimingMode:SKActionTimingEaseInEaseOut];
     [color setTimingMode:SKActionTimingEaseInEaseOut];
-    [player runAction:color];
-    [enemy runAction:color];
+    
     [player runAction:scale];
-    [enemy runAction:scale];
+    [enemy runAction:scale completion:^{
+        [player runAction:[SKAction scaleXTo:0.01 duration:0.15] completion:^{
+            [player runAction:[SKAction scaleYTo:1. duration:0.02]];
+            [enemy runAction:[SKAction scaleYTo:1. duration:0.02]];
+        }];
+        [enemy runAction:[SKAction scaleXTo:0.01 duration:0.15]];
+    }];
+    [player runAction:color];
+    [enemy runAction:color completion:^{
+        if ([node.name isEqualToString:@"beginButton"]) {
+            MyScene* gameScene = [[MyScene alloc] initWithSize:self.size];
+            gameScene.scaleMode = SKSceneScaleModeAspectFill;
+            gameScene.multiMode = NO;
+            gameScene.touchLocation = location;
+            gameScene.guardBreak = breakAble;
+            gameScene.maxLives = maxLife;
+            [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65]];
+            
+        }else if ([node.name isEqualToString:@"multiButton"]) {
+            MyScene* gameScene = [[MyScene alloc] initWithSize:self.size];
+            gameScene.scaleMode = SKSceneScaleModeAspectFill;
+            gameScene.multiMode = YES;
+            gameScene.touchLocation = location;
+            gameScene.guardBreak = breakAble;
+            gameScene.maxLives = maxLife;
+            [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65f]];
+            
+        }else if ([node.name isEqualToString:@"classicButton"]) {
+            ClassicScene* gameScene = [[ClassicScene alloc] initWithSize:self.size];
+            gameScene.scaleMode = SKSceneScaleModeAspectFill;
+            gameScene.multiMode = NO;
+            gameScene.touchLocation = location;
+            [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65f]];
+            
+        }else if ([node.name isEqualToString:@"classicMButton"]) {
+            ClassicScene* gameScene = [[ClassicScene alloc] initWithSize:self.size];
+            gameScene.scaleMode = SKSceneScaleModeAspectFill;
+            gameScene.multiMode = YES;
+            gameScene.touchLocation = location;
+            [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65f]];
+            
+        }
+    }];
 }
 
 -(void)brickDance:(NSInteger)brickNumber withTime:(CFTimeInterval*)currentTime{
     if (!loadMusic) {
         return;
     }
-    SKAction * dance = [SKAction sequence:@[[SKAction moveToY:50 duration:0.15],[SKAction moveToY:40 duration:0.15]]];
-    NSString *brickName;
+    
     switch (brickNumber) {
         case 0:
-            brickName = @"redBrick";
+            //brickName = @"redBrick";
             if((arc4random()%3)!=1){
-                [self runAction:[SKAction playSoundFileNamed:@"D5.caf" waitForCompletion:YES]];
+                [self runAction:[SKAction playSoundFileNamed:@"D5.caf" waitForCompletion:NO]];
             }else{
-                [self runAction:[SKAction playSoundFileNamed:@"C5.caf" waitForCompletion:YES]];
+                [self runAction:[SKAction playSoundFileNamed:@"C5.caf" waitForCompletion:NO]];
             }
             break;
         case 1:
-            brickName = @"blueBrick";
+            //brickName = @"blueBrick";
             if((arc4random()%3)!=1){
-                [self runAction:[SKAction playSoundFileNamed:@"F5.caf" waitForCompletion:YES]];
+                [self runAction:[SKAction playSoundFileNamed:@"F5.caf" waitForCompletion:NO]];
             }else{
-                [self runAction:[SKAction playSoundFileNamed:@"E5.caf" waitForCompletion:YES]];
+                [self runAction:[SKAction playSoundFileNamed:@"E5.caf" waitForCompletion:NO]];
             }
             break;
         case 2:
-            brickName = @"greenBrick";
+            //brickName = @"greenBrick";
             if((arc4random()%3)!=1){
-                [self runAction:[SKAction playSoundFileNamed:@"A5.caf" waitForCompletion:YES]];
+                [self runAction:[SKAction playSoundFileNamed:@"A5.caf" waitForCompletion:NO]];
             }else{
-                [self runAction:[SKAction playSoundFileNamed:@"G5.caf" waitForCompletion:YES]];
+                [self runAction:[SKAction playSoundFileNamed:@"G5.caf" waitForCompletion:NO]];
             }
             break;
         case 3:
-            brickName = @"whiteBrick";
+            //brickName = @"whiteBrick";
             if((arc4random()%3)!=1){
-                [self runAction:[SKAction playSoundFileNamed:@"B5.caf" waitForCompletion:YES]];
+                [self runAction:[SKAction playSoundFileNamed:@"B5.caf" waitForCompletion:NO]];
             }else{
-                [self runAction:[SKAction playSoundFileNamed:@"C6.caf" waitForCompletion:YES]];
+                [self runAction:[SKAction playSoundFileNamed:@"C6.caf" waitForCompletion:NO]];
             }
             break;
             
         default:
+            return;
             break;
     }
-    SKNode *brick = [self childNodeWithName:brickName];
-    [brick runAction:dance];
+    
+    SKAction * dance = [SKAction moveToY:self.frame.size.height duration:1.1];
+    dance.timingMode=SKActionTimingEaseOut;
+    SKAction * danceOut = [SKAction moveByX:0 y:self.frame.size.height duration:dance.duration];
+    danceOut.timingMode=SKActionTimingEaseIn;
+    
+    double r =(((double)arc4random() / 0x100000000));
+    double b =(((double)arc4random() / 0x100000000));
+    double g =(((double)arc4random() / 0x100000000));
+    
+    UIColor * randomColor = [UIColor colorWithCIColor:[CIColor colorWithRed:r green:g blue:b]];
+    
+    double sizeX =(arc4random()%10)+10;
+    SKSpriteNode *whiteBrick = [SKSpriteNode spriteNodeWithColor:randomColor size:CGSizeMake(sizeX, self.frame.size.height)];
+    whiteBrick.anchorPoint=CGPointMake(0, 1);
+    
+    double x =(arc4random()%310);
+    NSLog(@"%f",x);
+    
+    whiteBrick.position=CGPointMake(x,0);
+    whiteBrick.name = @"whiteBrick";
+    whiteBrick.zPosition=-4;
+    [whiteBrick runAction:[SKAction sequence:@[dance,[SKAction waitForDuration:1.9],danceOut,[SKAction removeFromParent]]]];
+    [self addChild:whiteBrick];
 }
 
 -(void)update:(CFTimeInterval)currentTime {
