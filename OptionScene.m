@@ -8,6 +8,8 @@
 
 #import "OptionScene.h"
 #import "StartScene.h"
+#import "MyScene.h"
+#import "AppDelegate.h"
 
 @interface OptionScene()
 @property CGPoint location;
@@ -92,6 +94,15 @@
         live.position = CGPointMake(CGRectGetMidX(self.frame),CGRectGetMidY(self.frame));
         [self addChild:live];
         
+        SKLabelNode *maxLabel = [SKLabelNode labelNodeWithFontNamed:@"MissionGothic-Regular"];
+        maxLabel.name = @"maxWord";
+        maxLabel.fontSize = 15;
+        maxLabel.fontColor = [SKColor grayColor];
+        maxLabel.horizontalAlignmentMode = SKLabelHorizontalAlignmentModeCenter;
+        maxLabel.text = [NSString stringWithFormat:@"Max lives"];
+        maxLabel.position = CGPointMake(CGRectGetMidX(self.frame),CGRectGetMidY(self.frame)-50);
+        [self addChild:maxLabel];
+        
         SKSpriteNode *greenBrick = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:0.5 green:1.0 blue:0.5 alpha:1.0] size:CGSizeMake(40, 40)];
         greenBrick.position=CGPointMake(CGRectGetMidX(self.frame),CGRectGetMidY(self.frame)-100);
         greenBrick.name = @"greenBrick";
@@ -116,6 +127,12 @@
         [zoom setTimingMode:SKActionTimingEaseInEaseOut];
         [greenBrick2 runAction:zoom];
         [self addChild:greenBrick2];
+        
+        SKSpriteNode *tutorialBrick =[SKSpriteNode spriteNodeWithImageNamed:@"tutorial.png"];
+                                       tutorialBrick.size=CGSizeMake(80, 30);//insert picture here?
+        tutorialBrick.position=CGPointMake(CGRectGetMidX(self.frame),CGRectGetMaxY(self.frame)*4/5);
+        tutorialBrick.name = @"tutorial";
+        [self addChild:tutorialBrick];
         
         SKSpriteNode *whiteBrick = [SKSpriteNode spriteNodeWithColor:[UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0] size:CGSizeMake(20, 20)];
         whiteBrick.position=CGPointMake(100,10);
@@ -428,6 +445,16 @@
     
     if ([node.name isEqualToString:@"twitter"]){
         [self companyPressed:self];
+    }else if ([node.name isEqualToString:@"tutorial"]){
+        [self runAction:[SKAction playSoundFileNamed:@"wood1.m4a" waitForCompletion:NO]];
+        MyScene* gameScene = [[MyScene alloc] initWithSize:self.size];
+        gameScene.scaleMode = SKSceneScaleModeAspectFill;
+        gameScene.multiMode = NO;
+        gameScene.touchLocation = location;
+        AppDelegate *delegate =  ( AppDelegate *) [[UIApplication sharedApplication] delegate];
+        gameScene.bgMusic=delegate.bgMusic;
+        gameScene.tutorial=1;
+        [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65]];
     }
     
     if (self.dragLock) {

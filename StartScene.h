@@ -13,6 +13,7 @@
 @property NSInteger maxLife;
 @property BOOL breakAble;
 @property NSMutableArray *saveArray;
+@property NSInteger level;
 
 @end
 

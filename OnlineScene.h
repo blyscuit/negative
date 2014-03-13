@@ -7,8 +7,9 @@
 //
 
 #import <SpriteKit/SpriteKit.h>
+#import "GCHelper.h"
 
-@interface MyScene : SKScene <SKPhysicsContactDelegate>
+@interface OnlineScene : SKScene <SKPhysicsContactDelegate, GCHelperDelegate>
 
 @property BOOL multiMode;
 @property CGPoint touchLocation;

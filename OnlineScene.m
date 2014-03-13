@@ -7,11 +7,12 @@
 //
 
 #import "AppDelegate.h"
-#import "MyScene.h"
+#import "OnlineScene.h"
 //#import <CoreMotion/CoreMotion.h>
 #import "StartScene.h"
 #import <AVFoundation/AVFoundation.h>
 //#import <AudioToolbox/AudioToolbox.h>
+#import "ViewController.h"
 
 #define IS_WIDESCREEN (fabs((double)[[UIScreen mainScreen]bounds].size.height-(double)568)<DBL_EPSILON)
 
@@ -73,7 +74,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 
 #pragma mark - Private GameScene Properties
 
-@interface MyScene()
+@interface OnlineScene()
 
 @property BOOL contentCreated;
 @property NSInteger playerPosition;
@@ -124,12 +125,16 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 
 @end
 
-@implementation MyScene
+@implementation OnlineScene
 
 @synthesize multiMode,touchLocation,maxLives,guardBreak,playerSpeech,eSpeech,backgroundAudioPlayer,cubeEmitter,triEmitter,bgMusic,tutorial,level,saveArray;
 
 -(void)didMoveToView:(SKView *)view{
     [self readNumbersFromFile];
+    
+    
+    AppDelegate * delegate = (AppDelegate *) [UIApplication sharedApplication].delegate;
+    [[GCHelper sharedInstance] findMatchWithMinPlayers:2 maxPlayers:2 viewController:delegate.viewController delegate:self];
     
     if (!self.contentCreated) {
         [self createContent];

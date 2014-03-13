@@ -17,8 +17,23 @@
 
 #pragma mark - Custom Type Definitions
 
-#define kContainerSize CGSizeMake (60,60)
-#define kContainerSpace 20
+static inline CGSize kContainerSize()
+{
+    return [[UIDevice currentDevice]userInterfaceIdiom]==UIUserInterfaceIdiomPhone ? CGSizeMake(60, 60):CGSizeMake(90,90) ;
+}
+static inline CGSize kPlayerSize(){
+    return [[UIDevice currentDevice]userInterfaceIdiom]==UIUserInterfaceIdiomPhone ? CGSizeMake(55, 55):CGSizeMake(82,82) ;
+}
+static inline float kContainerSpace(){
+    return [[UIDevice currentDevice]userInterfaceIdiom]==UIUserInterfaceIdiomPhone ? 20:30 ;
+}
+static inline CGSize kSecondPlayerSize(){
+    return [[UIDevice currentDevice]userInterfaceIdiom]==UIUserInterfaceIdiomPhone ? CGSizeMake(23, 23):CGSizeMake(32,32) ;
+}
+static inline float kSizeMultiply(){
+    return [[UIDevice currentDevice]userInterfaceIdiom]==UIUserInterfaceIdiomPhone ? 1:1.5 ;
+}
+
 #define kContainsCount 2
 #define kFontMissionGothicName @"MissionGothic-Light"
 
@@ -137,11 +152,12 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 
 
 -(void)setupPlayer{
-    SKSpriteNode *player = [SKSpriteNode spriteNodeWithColor:[UIColor blueColor] size:CGSizeMake(55, 55)];
+    SKSpriteNode *player = [SKSpriteNode spriteNodeWithColor:[UIColor blueColor] size:kPlayerSize()];
     [player setScale:0.3];
     [player setAlpha:0.01];
+    player.zPosition=2.;
     player.position=touchLocation;
-    SKAction *moveToStart = [SKAction moveTo:CGPointMake(CGRectGetMidX(self.frame), (CGRectGetMidY(self.frame))+((60.0+kContainerSpace)*(-1))) duration:0.45];
+    SKAction *moveToStart = [SKAction moveTo:CGPointMake(CGRectGetMidX(self.frame), (CGRectGetMidY(self.frame))+((kContainerSize().width+kContainerSpace())*(-1))) duration:0.45];
     SKAction *scale = [SKAction scaleTo:1.0 duration:0.2];
     SKAction *alpha = [SKAction fadeAlphaTo:1.0 duration:0.6];
     [alpha setTimingMode:SKActionTimingEaseIn];
@@ -162,7 +178,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 
 -(void)setupPlayerButton{
     SKSpriteNode *playerControl = [SKSpriteNode spriteNodeWithImageNamed:@"battleC.png" ];
-    playerControl.size=CGSizeMake(self.frame.size.width, 50);
+    playerControl.size=CGSizeMake(self.frame.size.width, self.size.width/6.4);
     playerControl.color =[UIColor blueColor];
     playerControl.alpha=.5;
     playerControl.position=CGPointMake(CGRectGetMidX(self.frame), -playerControl.size.height);
@@ -171,11 +187,12 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 }
 
 -(void)setupEnemy{
-    SKSpriteNode *enemy = [SKSpriteNode spriteNodeWithColor:[UIColor redColor] size:CGSizeMake(55, 55)];
+    SKSpriteNode *enemy = [SKSpriteNode spriteNodeWithColor:[UIColor redColor] size:kPlayerSize()];
     [enemy setScale:0.3];
     [enemy setAlpha:0.01];
+    enemy.zPosition=2.;
     enemy.position=touchLocation;
-    SKAction *moveToStart = [SKAction moveTo:CGPointMake(CGRectGetMidX(self.frame), (CGRectGetMidY(self.frame))+((60.0+kContainerSpace)*(1))) duration:0.45];
+    SKAction *moveToStart = [SKAction moveTo:CGPointMake(CGRectGetMidX(self.frame), (CGRectGetMidY(self.frame))+((kContainerSize().width+kContainerSpace())*(1))) duration:0.45];
     SKAction *scale = [SKAction scaleTo:1.0 duration:0.2];
     SKAction *alpha = [SKAction fadeAlphaTo:1.0 duration:0.6];
     [alpha setTimingMode:SKActionTimingEaseIn];
@@ -189,14 +206,12 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         enemy.physicsBody.contactTestBitMask = kPlayerProjectileCategory;
     }];[enemy runAction:alpha];
     enemy.name = @"enemy";
-    
-    enemy.zPosition=0.0;
     [self addChild:enemy];
 }
 
 -(void)setupEnemyButton{
     SKSpriteNode *enemyControl = [SKSpriteNode spriteNodeWithImageNamed:@"battleC.png"];
-    enemyControl.size=CGSizeMake(self.frame.size.width, 50);
+    enemyControl.size=CGSizeMake(self.frame.size.width, self.size.width/6.4);
     enemyControl.color = [UIColor redColor];
     enemyControl.xScale = -1;
     enemyControl.yScale = -1;
@@ -497,7 +512,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             projectile.alpha = 1.0;
             projectile.position=CGPointMake(0,player.frame.size.height*2/3);
             projectile.name = @"pproj";
-            projectile.zPosition =2.;
+            projectile.zPosition =10.;
             
             SKAction *magicFade = [SKAction sequence:@[
                                                        //[SKAction moveTo:CGPointMake(enemy.position.x-player.position.x, enemy.position.y-player.position.y-60) duration:0.7],
@@ -511,7 +526,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                             self.eGuardable=NO;
                             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"shieldBreak" ofType:@"sks"];
                             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-                            self.magicParticle.particlePosition = CGPointMake(0,-35);
+                            self.magicParticle.particlePosition = CGPointMake(0,-35*kSizeMultiply());
                             self.magicParticle.zPosition =1.5;
                             [enemy addChild:self.magicParticle];
                             self.eMoveType=ENone;
@@ -552,7 +567,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"magicB" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
             self.magicParticle.particlePosition = CGPointMake(0,0);
-            self.magicParticle.zPosition =1.5;
+            self.magicParticle.zPosition =10.;
             self.magicParticle.particleAction = magicFade;
             self.magicParticle.targetNode=player;
             [projectile addChild:self.magicParticle];
@@ -628,7 +643,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
             self.magicParticle.zPosition =2;
-            CGPoint point = CGPointMake(-44, 0);
+            CGPoint point = CGPointMake(-44*kSizeMultiply(), 0);
             self.magicParticle.particlePosition = point;
             SKAction *magicFade2 = [SKAction sequence:@[[SKAction moveTo:CGPointZero duration:0.3],
                                                         [SKAction removeFromParent]]];
@@ -641,7 +656,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            point = CGPointMake(-37, 37);
+            point = CGPointMake(-37*kSizeMultiply(), 37*kSizeMultiply());
             self.magicParticle.particlePosition = point;
             self.magicParticle.particleAction = magicFade2;
             if (self.playerCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
@@ -649,7 +664,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            point = CGPointMake(00, 44);
+            point = CGPointMake(00, 44*kSizeMultiply());
             self.magicParticle.particlePosition = point;
             self.magicParticle.particleAction = magicFade2;
             if (self.playerCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
@@ -657,7 +672,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            point = CGPointMake(37, 37);
+            point = CGPointMake(37*kSizeMultiply(), 37*kSizeMultiply());
             self.magicParticle.particlePosition = point;
             self.magicParticle.particleAction = magicFade2;
             if (self.playerCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
@@ -665,7 +680,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            point = CGPointMake(44, 0);
+            point = CGPointMake(44*kSizeMultiply(), 0);
             self.magicParticle.particlePosition = point;
             self.magicParticle.particleAction = magicFade2;
             if (self.playerCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
@@ -673,7 +688,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            point = CGPointMake(37, -37);
+            point = CGPointMake(37*kSizeMultiply(), -37*kSizeMultiply());
             self.magicParticle.particlePosition = point;
             self.magicParticle.particleAction = magicFade2;
             if (self.playerCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
@@ -681,7 +696,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            point = CGPointMake(0, -44);
+            point = CGPointMake(0, -44*kSizeMultiply());
             self.magicParticle.particlePosition = point;
             self.magicParticle.particleAction = magicFade2;
             if (self.playerCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
@@ -689,7 +704,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            point = CGPointMake(-37, -37);
+            point = CGPointMake(-37*kSizeMultiply(), -37*kSizeMultiply());
             self.magicParticle.particlePosition = point;
             self.magicParticle.particleAction = magicFade2;
             if (self.playerCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
@@ -704,7 +719,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             SKNode *player = [self childNodeWithName:@"player"];
             SKSpriteNode *shield = [SKSpriteNode spriteNodeWithColor:[UIColor yellowColor] size:CGSizeMake(70, 5)];
             shield.alpha=0.7;
-            shield.position = CGPointMake(0, 35);
+            shield.position = CGPointMake(0, 35*kSizeMultiply());
             shield.name = @"shield";
             [shield setScale:0.0];
             SKAction *switchOn = [SKAction sequence:@[[SKAction scaleXTo:0.3 y:1.0 duration:0.1],
@@ -745,7 +760,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             projectile.alpha = 1.0;
             projectile.position=CGPointMake(0,-player.frame.size.height*2/3);
             projectile.name = @"eproj";
-            projectile.zPosition =2.;
+            projectile.zPosition =10;
             
             SKAction *magicFade = [SKAction sequence:@[
                                                        //[SKAction moveTo:CGPointMake(0, enemy.position.y-player.position.y+60) duration:0.8],
@@ -760,7 +775,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                             self.player1MoveType=none;
                             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"shieldBreak" ofType:@"sks"];
                             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-                            self.magicParticle.particlePosition = CGPointMake(0,35);
+                            self.magicParticle.particlePosition = CGPointMake(0,35*kSizeMultiply());
                             self.magicParticle.zPosition =1.5;
                             [enemy addChild:self.magicParticle];
                             SKNode *control = [self childNodeWithName:@"playerControl"];
@@ -799,7 +814,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"magic" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
             self.magicParticle.particlePosition = CGPointMake(0,0);
-            self.magicParticle.zPosition =1.5;
+            self.magicParticle.zPosition =10;
             self.magicParticle.particleAction = magicFade;
             self.magicParticle.targetNode = player;
             [projectile addChild:self.magicParticle];
@@ -846,7 +861,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
             self.magicParticle.zPosition =2;
-            CGPoint point = CGPointMake(-44, 0);
+            CGPoint point = CGPointMake(-44*kSizeMultiply(), 0);
             self.magicParticle.particlePosition = point;
             SKAction *magicFade2 = [SKAction sequence:@[[SKAction moveTo:CGPointZero duration:0.3],
                                                         [SKAction removeFromParent]]];
@@ -859,49 +874,49 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            point = CGPointMake(-37, 37);if (self.eCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
+            point = CGPointMake(-37*kSizeMultiply(), 37*kSizeMultiply());if (self.eCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
             self.magicParticle.particlePosition = point;
             self.magicParticle.particleAction = magicFade2;
             [blank addChild:self.magicParticle];
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            point = CGPointMake(00, 44);if (self.eCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
+            point = CGPointMake(00, 44*kSizeMultiply());if (self.eCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
             self.magicParticle.particlePosition = point;
             self.magicParticle.particleAction = magicFade2;
             [blank addChild:self.magicParticle];
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            point = CGPointMake(37, 37);if (self.eCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
+            point = CGPointMake(37*kSizeMultiply(), 37*kSizeMultiply());if (self.eCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
             self.magicParticle.particlePosition = point;
             self.magicParticle.particleAction = magicFade2;
             [blank addChild:self.magicParticle];
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            point = CGPointMake(44, 0);if (self.eCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
+            point = CGPointMake(44*kSizeMultiply(), 0);if (self.eCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
             self.magicParticle.particlePosition = point;
             self.magicParticle.particleAction = magicFade2;
             [blank addChild:self.magicParticle];
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            point = CGPointMake(37, -37);if (self.eCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
+            point = CGPointMake(37*kSizeMultiply(), -37*kSizeMultiply());if (self.eCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
             self.magicParticle.particlePosition = point;
             self.magicParticle.particleAction = magicFade2;
             [blank addChild:self.magicParticle];
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            point = CGPointMake(0, -44);if (self.eCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
+            point = CGPointMake(0, -44*kSizeMultiply());if (self.eCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
             self.magicParticle.particlePosition = point;
             self.magicParticle.particleAction = magicFade2;
             [blank addChild:self.magicParticle];
             
             self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"energy" ofType:@"sks"];
             self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
-            point = CGPointMake(-37, -37);if (self.eCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
+            point = CGPointMake(-37*kSizeMultiply(), -37*kSizeMultiply());if (self.eCharge==3)self.magicParticle.particleBlendMode =SKBlendModeSubtract;
             self.magicParticle.particlePosition = point;
             self.magicParticle.particleAction = magicFade2;
             [blank addChild:self.magicParticle];
@@ -915,9 +930,9 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             //if(self.eCharge>0)self.eCharge--;
             
             SKNode *player = [self childNodeWithName:@"enemy"];
-            SKSpriteNode *shield = [SKSpriteNode spriteNodeWithColor:[UIColor yellowColor] size:CGSizeMake(70, 5)];
+            SKSpriteNode *shield = [SKSpriteNode spriteNodeWithColor:[UIColor yellowColor] size:CGSizeMake(70*kSizeMultiply(), 5*kSizeMultiply())];
             shield.alpha=0.7;
-            shield.position = CGPointMake(0, -35);
+            shield.position = CGPointMake(0, -35*kSizeMultiply());
             [shield setScale:0.0];
             shield.name = @"shield";
             SKAction *switchOn = [SKAction sequence:@[[SKAction scaleXTo:0.3 y:1.0 duration:0.1],
@@ -956,7 +971,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             SKSpriteNode *shield = [SKSpriteNode spriteNodeWithColor:[UIColor yellowColor] size:CGSizeMake(70, 5)];
             shield.alpha=0.7;
             shield.name=@"shield";
-            shield.position = CGPointMake(0, 35);
+            shield.position = CGPointMake(0, 35*kSizeMultiply());
             [shield setScale:0.0];
             SKAction *switchOn = [SKAction sequence:@[[SKAction scaleXTo:0.3 y:1.0 duration:0.1],
                                                       [SKAction scaleXTo:1.0 duration:0.1]]];
@@ -987,7 +1002,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             SKSpriteNode *shield = [SKSpriteNode spriteNodeWithColor:[UIColor yellowColor] size:CGSizeMake(70, 5)];
             shield.alpha=0.7;
             shield.name = @"shield";
-            shield.position = CGPointMake(0, -35);
+            shield.position = CGPointMake(0, -35*kSizeMultiply());
             [shield setScale:0.0];
             SKAction *switchOn = [SKAction sequence:@[[SKAction scaleXTo:0.3 y:1.0 duration:0.1],
                                                       [SKAction scaleXTo:1.0 duration:0.1]]];
@@ -1113,6 +1128,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     
     AVSpeechSynthesizer *av = [[AVSpeechSynthesizer alloc] init];
     AVSpeechUtterance *utterance = [[AVSpeechUtterance alloc]initWithString:@"Game Over"];
+    [utterance setRate:.5];
     [av speakUtterance:utterance];
     
     self.gameOver=YES;
@@ -1255,8 +1271,8 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         }else if (self.playerCharge<self.eCharge){
             
             SKNode* fire = [self childNodeWithName:@"pproj"];
-            if(contact.bodyA.node!=fire){[contact.bodyB.node removeFromParent];}
-            else{[contact.bodyA.node removeFromParent];}
+            if(contact.bodyA.node!=fire){[contact.bodyA.node removeFromParent];}
+            else{[contact.bodyB.node removeFromParent];}
             
             self.playerCharge =0;
             
@@ -1276,10 +1292,12 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     }
     else if ([nodeNames containsObject:@"eproj"]&&[nodeNames containsObject:@"player"]&&self.playerUsingType!=PlayerGuard) {
         
-        NSLog(@"%f %f",contact.bodyB.node.zPosition,contact.bodyA.node.zPosition);
+        contact.bodyA.node.zPosition=-1;
+        //NSLog(@"%f %f",contact.bodyB.node.zPosition,contact.bodyA.node.zPosition);
         [self extraAnimation];
     }else if ([nodeNames containsObject:@"pproj"]&&[nodeNames containsObject:@"enemy"]&&self.eUsingType!=EGuard) {
-        NSLog(@"%f %f",contact.bodyB.node.zPosition,contact.bodyA.node.zPosition);
+        contact.bodyA.node.zPosition=-1;
+        //NSLog(@"%f %f",contact.bodyB.node.zPosition,contact.bodyA.node.zPosition);
         [self extraAnimation];
     }
     

@@ -8,11 +8,15 @@
 
 #import "AppDelegate.h"
 #import <AVFoundation/AVFoundation.h>
+#import "GCHelper.h"
 
 @implementation AppDelegate
+@synthesize bgMusic;
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
+    bgMusic=YES;
+    [[GCHelper sharedInstance] authenticateLocalUser];
     
     [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:nil];
     // Override point for customization after application launch.
