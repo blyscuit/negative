@@ -7,13 +7,18 @@
 //
 
 #import <SpriteKit/SpriteKit.h>
+#import <GameKit/GameKit.h>
 
-@interface StartScene : SKScene
+
+@interface StartScene : SKScene <GKMatchDelegate, GKMatchmakerViewControllerDelegate,GKGameCenterControllerDelegate>
 
 @property NSInteger maxLife;
 @property BOOL breakAble;
 @property NSMutableArray *saveArray;
 @property NSInteger level;
+@property GKMatch* myMatch;
+@property BOOL matchStarted;
+@property BOOL multiScreen;
 
 @end
 

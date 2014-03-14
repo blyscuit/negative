@@ -16,7 +16,11 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
     bgMusic=YES;
+    
+	viewController = [viewController initWithNibName:nil bundle:nil];
+    
     [[GCHelper sharedInstance] authenticateLocalUser];
+    
     
     [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:nil];
     // Override point for customization after application launch.

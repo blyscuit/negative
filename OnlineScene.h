@@ -7,9 +7,13 @@
 //
 
 #import <SpriteKit/SpriteKit.h>
-#import "GCHelper.h"
+#import <GameKit/GameKit.h>
 
-@interface OnlineScene : SKScene <SKPhysicsContactDelegate, GCHelperDelegate>
+@interface OnlineScene : SKScene <SKPhysicsContactDelegate, GKMatchDelegate,GKMatchmakerViewControllerDelegate>{
+    uint32_t ourRandom;
+    BOOL receivedRandom;
+    NSString *otherPlayerID;
+}
 
 @property BOOL multiMode;
 @property CGPoint touchLocation;
@@ -19,5 +23,11 @@
 @property NSInteger tutorial;
 @property NSInteger level;
 @property NSMutableArray *saveArray;
+
+@property GKMatch* myMatch;
+@property BOOL matchStarted;
+
+
+@property (retain) NSMutableDictionary *playersDict;
 
 @end

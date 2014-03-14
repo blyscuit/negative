@@ -27,9 +27,6 @@ static inline CGSize kPlayerSize(){
 static inline float kContainerSpace(){
     return [[UIDevice currentDevice]userInterfaceIdiom]==UIUserInterfaceIdiomPhone ? 20:30 ;
 }
-static inline CGSize kSecondPlayerSize(){
-    return [[UIDevice currentDevice]userInterfaceIdiom]==UIUserInterfaceIdiomPhone ? CGSizeMake(23, 23):CGSizeMake(32,32) ;
-}
 static inline float kSizeMultiply(){
     return [[UIDevice currentDevice]userInterfaceIdiom]==UIUserInterfaceIdiomPhone ? 1:1.5 ;
 }
@@ -1178,6 +1175,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     
     StartScene* gameScene = [[StartScene alloc] initWithSize:self.size];
     gameScene.scaleMode = SKSceneScaleModeAspectFill;
+    gameScene.multiScreen=YES;
     [self.view presentScene:gameScene transition:[SKTransition pushWithDirection:SKTransitionDirectionUp duration:0.8]];
 }
 

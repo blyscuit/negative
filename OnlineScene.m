@@ -39,6 +39,42 @@ typedef enum EnermyMoveType{
     ENone,
 }EnermyMoveType;
 
+typedef enum {
+    kMessageTypeRandomNumber = 0,
+    kMessageTypeGameBegin,
+    kMessageTypeMove,
+    kMessageTypeGameOver
+} MessageType;
+
+typedef struct {
+    MessageType messageType;
+} Message;
+
+typedef struct {
+    Message message;
+    uint32_t randomNumber;
+} MessageRandomNumber;
+
+typedef struct {
+    Message message;
+} MessageGameBegin;
+
+typedef struct {
+    Message message;
+} MessageMove;
+
+typedef struct {
+    Message message;
+    BOOL player1Won;
+} MessageGameOver;
+
+typedef enum {
+    kGameStateWaitingForMatch = 0,
+    kGameStateWaitingForRandomNumber,
+    kGameStateWaitingForStart,
+    kGameStateActive,
+    kGameStateDone
+} GameState;
 
 static inline CGSize kContainerSize()
 {
@@ -58,9 +94,6 @@ static inline float kDistanceofPlayerLine(){
 }
 static inline float kSizeMultiply(){
     return [[UIDevice currentDevice]userInterfaceIdiom]==UIUserInterfaceIdiomPhone ? 1:1.5 ;
-}
-static inline float kMenuY(){
-    return [[UIDevice currentDevice]userInterfaceIdiom]==UIUserInterfaceIdiomPhone ? IS_WIDESCREEN ? 0:20 :0 ;
 }
 
 
@@ -122,19 +155,25 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 
 @property AVAudioPlayer *backgroundAudioPlayer;
 
+@property NSMutableArray *eMoveQue;
+@property NSMutableArray *pMoveQue;
+
 
 @end
 
 @implementation OnlineScene
 
-@synthesize multiMode,touchLocation,maxLives,guardBreak,playerSpeech,eSpeech,backgroundAudioPlayer,cubeEmitter,triEmitter,bgMusic,tutorial,level,saveArray;
+@synthesize multiMode,touchLocation,maxLives,guardBreak,playerSpeech,eSpeech,backgroundAudioPlayer,cubeEmitter,triEmitter,bgMusic,tutorial,level,saveArray,playersDict;
 
 -(void)didMoveToView:(SKView *)view{
     [self readNumbersFromFile];
     
     
-    AppDelegate * delegate = (AppDelegate *) [UIApplication sharedApplication].delegate;
-    [[GCHelper sharedInstance] findMatchWithMinPlayers:2 maxPlayers:2 viewController:delegate.viewController delegate:self];
+    [self hostMatch];
+
+    
+    //AppDelegate * delegate = (AppDelegate *) [UIApplication sharedApplication].delegate;
+    //[[GCHelper sharedInstance] findMatchWithMinPlayers:2 maxPlayers:2 viewController:delegate. delegate:self];
     
     if (!self.contentCreated) {
         [self createContent];
@@ -146,6 +185,9 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pauseGame:) name:UIApplicationWillResignActiveNotification object:nil];
         //[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(unPauseGame:)  name:UIApplicationDidBecomeActiveNotification  object:nil];
     }
+    
+    ourRandom = arc4random();
+    //[self setGameState:kGameStateWaitingForMatch];
 }
 
 -(void)createContent{
@@ -202,9 +244,8 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     
     [self createBetaTester];
     
-    if (tutorial==1) {
-        [self initiateTutorial];
-    }
+    self.pMoveQue=[[NSMutableArray alloc] init];
+    self.eMoveQue=[[NSMutableArray alloc] init];
 }
 
 
@@ -254,7 +295,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[[SKAction waitForDuration:flick.duration],[SKAction rotateByAngle:M_PI/2 duration:0]]]]];
         [player addChild:over];
     }
-    
+    /*
     playerSpeech = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
     
     playerSpeech.name = @"playerSpeech";
@@ -265,7 +306,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     playerSpeech.text = [NSString stringWithFormat:@"%@",self.playerWords];
     
     playerSpeech.position = CGPointMake(player.frame.size.width*4,-playerSpeech.frame.size.height/2);
-    [player addChild:playerSpeech];
+    [player addChild:playerSpeech];*/
 
 }
 
@@ -388,7 +429,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         [enemy addChild:over];
     }
 
-    
+    /*
     eSpeech = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
     
     eSpeech.name = @"eSpeech";
@@ -399,7 +440,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     eSpeech.text = [NSString stringWithFormat:@"%@",self.eWords];
     [eSpeech setScale:-1];
     eSpeech.position = CGPointMake(-enemy.frame.size.width*4,+playerSpeech.frame.size.height/2);
-    [enemy addChild:eSpeech];
+    [enemy addChild:eSpeech];*/
 }
 
 -(void)setupEnemyButton{
@@ -628,121 +669,8 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     /* Called when a touch begins
      */
     
-    if (!self.gameBegin&&!multiMode) {
-        [self beginGame];
-        return;
-    }
-    
-    if(self.gamePause||self.gameOver){
-        return;
-    }
-    
     UITouch *touch = [touches anyObject];
     CGPoint location = [touch locationInNode:self];
-    /*SKNode *node = [self nodeAtPoint:location];
-    
-    if ([node.name isEqualToString:@"1Fire"]) {
-        self.player1MoveType = PlayerFire;
-    }else if([node.name isEqualToString:@"1Up"]){
-        self.player1MoveType=PlayerMoveUp;
-    }else if([node.name isEqualToString:@"1Down"]){
-        self.player1MoveType=PlayerMoveDown;
-    }else if([node.name isEqualToString:@"1Charge"]){
-        self.player1MoveType=PlayerCharge;
-    }else if([node.name isEqualToString:@"1Guard"]){
-        self.player1MoveType=PlayerGuard;
-    }
-    
-    if ([node.name isEqualToString:@"2Fire"]) {
-        self.eMoveType = EFire;
-    }else if([node.name isEqualToString:@"2Up"]){
-        self.eMoveType=EMoveUp;
-    }else if([node.name isEqualToString:@"2Down"]){
-        self.eMoveType=EMoveDown;
-    }else if([node.name isEqualToString:@"2Charge"]){
-        self.eMoveType=ECharge;
-    }else if([node.name isEqualToString:@"2Guard"]){
-        self.eMoveType=EGuard;
-    }*/
-    
-    if (multiMode) {
-        if (location.y<=self.frame.size.height/2) {
-            SKNode *control = [self childNodeWithName:@"playerControl"];
-            SKAction *moveIn = [SKAction moveToY:control.frame.size.height/2 duration:0.2];
-            SKAction *fade = [SKAction fadeAlphaTo:.5 duration:0.1];
-            [control runAction:fade];
-            [control runAction:moveIn];
-            self.playerTouchLocation = location;
-            if (location.x<self.frame.size.width*1/5) {
-                if (self.player1MoveType!=PlayerMoveDown) {
-                    self.player1MoveType = PlayerMoveDown;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Down.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*2/5){
-                if (self.player1MoveType != PlayerMoveUp) {
-                    self.player1MoveType = PlayerMoveUp;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Up.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*3/5){
-                if (self.player1MoveType != PlayerCharge){
-                    self.player1MoveType = PlayerCharge;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Plus.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*4/5){
-                if (self.player1MoveType != PlayerFire){
-                    self.player1MoveType = PlayerFire;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neg.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*5/5){
-                if (!self.playerGuardable) {
-                    return;
-                }
-                if (self.player1MoveType != PlayerGuard){
-                    self.player1MoveType = PlayerGuard;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neu.png"]]];
-                }
-            }
-        }
-        if (location.y>self.frame.size.height/2) {
-            SKNode *control = [self childNodeWithName:@"enemyControl"];
-            SKAction *moveIn = [SKAction moveToY:self.frame.size.height-control.frame.size.height/2 duration:0.2];
-            SKAction *fade = [SKAction fadeAlphaTo:.5 duration:0.1];
-            [control runAction:fade];
-            [control runAction:moveIn];
-            self.playerTouchLocation = location;
-            if (location.x<self.frame.size.width*1/5) {
-                if (!self.eGuardable) {
-                    return;
-                }
-                if (self.eMoveType != EGuard){
-                    self.eMoveType = EGuard;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Neu.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*2/5){
-                if (self.eMoveType != EFire){
-                    self.eMoveType = EFire;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Neg.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*3/5){
-                if (self.eMoveType != PlayerCharge){
-                    self.eMoveType = PlayerCharge;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Plus.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*4/5){
-                if (self.eMoveType != EMoveDown){
-                    self.eMoveType = EMoveDown;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Up.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*5/5){
-                if (self.eMoveType != EMoveUp){
-                    self.eMoveType = EMoveUp;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Down.png"]]];
-                }
-            }
-
-        }
-
-    }else{
         if (location.y<=self.frame.size.height) {
             SKNode *control = [self childNodeWithName:@"playerControl"];
             SKAction *moveIn = [SKAction moveToY:control.frame.size.height/2 duration:0.2];
@@ -776,11 +704,12 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                 if (self.player1MoveType != PlayerGuard){
                     self.player1MoveType = PlayerGuard;
                     [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neu.png"]]];
-                }
+                
             }
         }
     }
     
+    [self sendMove];
 }
 
 -(void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event{
@@ -859,73 +788,6 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         return;
     }
     
-    if (multiMode) {
-        if (location.y<=self.frame.size.height/2) {
-            SKNode *control = [self childNodeWithName:@"playerControl"];
-            if (location.x<self.frame.size.width*1/5) {
-                if (self.player1MoveType!=PlayerMoveDown) {
-                    self.player1MoveType = PlayerMoveDown;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Down.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*2/5){
-                if (self.player1MoveType != PlayerMoveUp) {
-                    self.player1MoveType = PlayerMoveUp;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Up.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*3/5){
-                if (self.player1MoveType != PlayerCharge){
-                    self.player1MoveType = PlayerCharge;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Plus.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*4/5){
-                if (self.player1MoveType != PlayerFire){
-                    self.player1MoveType = PlayerFire;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neg.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*5/5){
-                if (!self.playerGuardable) {
-                    return;
-                }
-                if (self.player1MoveType != PlayerGuard){
-                    self.player1MoveType = PlayerGuard;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"1Neu.png"]]];
-                }
-            }
-        }
-        if (location.y>self.frame.size.height/2) {
-            SKNode *control = [self childNodeWithName:@"enemyControl"];
-            if (location.x<self.frame.size.width*1/5) {
-                if (!self.eGuardable) {
-                    return;
-                }
-                if (self.eMoveType != EGuard){
-                    self.eMoveType = EGuard;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Neu.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*2/5){
-                if (self.eMoveType != EFire){
-                    self.eMoveType = EFire;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Neg.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*3/5){
-                if (self.eMoveType != PlayerCharge){
-                    self.eMoveType = PlayerCharge;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Plus.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*4/5){
-                if (self.eMoveType != EMoveDown){
-                    self.eMoveType = EMoveDown;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Up.png"]]];
-                }
-            }else if(location.x<self.frame.size.width*5/5){
-                if (self.eMoveType != EMoveUp){
-                    self.eMoveType = EMoveUp;
-                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"2Down.png"]]];
-                }
-            }
-        }
-        
-    }else{
         if (location.y<=self.frame.size.height) {
             SKNode *control = [self childNodeWithName:@"playerControl"];
             if (location.x<self.frame.size.width*1/5) {
@@ -958,7 +820,8 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                 }
             }
         }
-    }
+    
+    [self sendMove];
 
 }
 
@@ -1090,15 +953,6 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     switch (self.playerUsingType) {
         case PlayerFire:
         {
-            
-            if (tutorial>0&&tutorial<8) {
-                self.eCharge=1;
-                self.eUsingType=EGuard;
-                [self readEnermyMove];
-            }
-            if (tutorial==7) {
-                [self initiateTutorial];
-            }
             
             if(self.playerCharge<=0){
                 self.playerCharge=0;
@@ -1291,18 +1145,15 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         case PlayerMoveUp:
         {
             
-            if (tutorial==2) {
-                [self initiateTutorial];
-            }
             
             if(self.playerCharge<=0){
                 self.playerCharge=0;
             }
             
             if (self.playerPosition>=4)return;
-            if((self.playerPosition)+1==self.enemyPosition&&self.eUsingType!=EMoveUp)return;
+            if((self.playerPosition)+1==self.enemyPosition&&self.eUsingType!=EMoveDown)return;
             
-            if((self.playerPosition)+2==self.enemyPosition&&self.eUsingType==EMoveDown){
+            if((self.playerPosition)+2==self.enemyPosition&&self.eUsingType==EMoveUp){
                 [self moveToSameSpot];
                 return;
             }
@@ -1340,16 +1191,6 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         }
         case PlayerCharge:
         {
-            
-            if (tutorial==3) {
-                [self initiateTutorial];
-            }
-            else if (tutorial==6) {
-                [self initiateTutorial];
-            }
-            else if (tutorial==5) {
-                [self initiateTutorial];
-            }
             
             
             if (self.playerCharge<0) {
@@ -1444,9 +1285,6 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         case PlayerGuard:
         {
             
-            if (tutorial==4) {
-                [self initiateTutorial];
-            }
             
             SKNode *player = [self childNodeWithName:@"player"];
             SKSpriteNode *shield = [SKSpriteNode spriteNodeWithColor:[UIColor yellowColor] size:CGSizeMake(70*kSizeMultiply(), 5*kSizeMultiply())];
@@ -1633,7 +1471,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 -(void)readEnermyMove{
     switch (self.eUsingType) {
         
-        case EMoveUp:
+        case EMoveDown:
         {
             if(self.eCharge<=0){
                 self.eCharge=0;
@@ -1651,7 +1489,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             
             break;
         }
-        case EMoveDown:
+        case EMoveUp:
         {
             if(self.eCharge<=0){
                 self.eCharge=0;
@@ -1932,7 +1770,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 
 #pragma mark - turn helper
 -(void)updateForTurnEnds:(NSTimeInterval)currentTime{
-#pragma mark Debug Mode
+    
     //self.timePerMove =2.;
     if (currentTime - self.timeOfLastMove < self.timePerMove) return;
     if (!self.gameBegin||self.gameOver||self.gamePause) {
@@ -1940,16 +1778,19 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         return;
     }
     
+    if(self.eMoveQue.count>self.turnPassed){
+        self.eMoveType=[[self.eMoveQue objectAtIndex:(self.turnPassed)]intValue];
+        NSLog(@"using: %@",self.eMoveQue);
+    }else{
+        NSLog(@"not using:%@ but %u",self.eMoveQue,self.eMoveType);
+    }
+    [self.pMoveQue addObject:[NSNumber numberWithInt:self.player1MoveType]];
+    [self sendQue];
     
-#pragma mark Player AI
-    //if(self.player1MoveType==none)
-    //[self playerChoice];
-    
-    if(!multiMode&&tutorial<=0)
-    [self enermyChoice];
     
     self.playerUsingType=self.player1MoveType;
     self.eUsingType=self.eMoveType;
+    NSLog(@"%u",self.eUsingType);
     
     [self checkCharge];
     
@@ -1976,7 +1817,6 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     
     self.turnPassed++;
     
-    if(tutorial<=0)
     [self adjustTimePerMove];
     
     [self turnIndicatorGreen];
@@ -1984,20 +1824,20 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 }
 
 -(void)adjustTimePerMove{
-    if (self.timePerMove<1.) {
+    if (self.timePerMove<1.5) {
         return;
     }
-    else if (self.timePerMove<1.25){
+    else if (self.timePerMove<1.6){
         self.speed=self.speed*1.001;
         self.timePerMove = self.timePerMove/self.speed;
         
-        NSLog(@"%f",self.timePerMove);
+        //NSLog(@"%f",self.timePerMove);
 
         return;
     }
     self.speed=self.speed*pow(1.0005,self.turnPassed);
     self.timePerMove = self.timePerMove/self.speed;
-    NSLog(@"%f",self.timePerMove);
+    //NSLog(@"%f",self.timePerMove);
     
 }
 
@@ -2115,6 +1955,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     
     StartScene* gameScene = [[StartScene alloc] initWithSize:self.size];
     gameScene.scaleMode = SKSceneScaleModeAspectFill;
+    gameScene.multiScreen=YES;
     [self.view presentScene:gameScene transition:[SKTransition pushWithDirection:SKTransitionDirectionUp duration:0.8]];
 }
 
@@ -2257,6 +2098,8 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     //[self playerAnimation];
     
     [self changeBackgroundParticleColor];
+    
+    //[self sendMove];
 }
 
 -(void)changeBackgroundParticleColor{
@@ -2295,132 +2138,128 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 #pragma mark - Status Control
 
 -(void)pauseGame:(NSNotification*)note{
-    if(self.gamePause||self.gameOver)return;
-    
-    self.gamePause=YES;
-    NSLog(@"pause");
-    
-    SKNode*pauser=[SKNode node];
-    pauser.position=CGPointZero;
-    pauser.name=@"pauser";
-    [self addChild:pauser];
-    
-    SKSpriteNode *back = [SKSpriteNode spriteNodeWithColor:[UIColor whiteColor] size:self.frame.size];
-    back.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
-    back.alpha=.0;
-    back.zPosition=3.2;
-    [back runAction:[SKAction fadeAlphaTo:0.8 duration:.2]];
-    [pauser addChild:back];
-    
-    SKShapeNode *ball = [[SKShapeNode alloc] init];
-    
-    CGMutablePathRef myPath = CGPathCreateMutable();
-    CGPathAddArc(myPath, NULL, 0,0, 55*kSizeMultiply(), 0, M_PI*2, YES);
-    ball.path = myPath;
-    ball.position=back.position;
-    ball.name=@"unPause";
-    ball.lineWidth = 1.0*kSizeMultiply();
-    ball.fillColor = [SKColor whiteColor];
-    ball.strokeColor = [SKColor whiteColor];
-    ball.glowWidth = 0.0;
-    ball.alpha=.0;
-    ball.zPosition=3.3;
-    [ball runAction:[SKAction fadeAlphaTo:0.6 duration:.6]];
-    [pauser addChild:ball];
-    
-    SKSpriteNode *player = [SKSpriteNode spriteNodeWithImageNamed:@"pause.png"];
-    //
-    [player runAction:[SKAction colorizeWithColor:[UIColor lightGrayColor] colorBlendFactor:.8 duration:0]];
-    player.size =CGSizeMake(75*kSizeMultiply(), 75*kSizeMultiply());
-    player.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
-    player.name = @"unPause";
-    player.zPosition=4.;
-    SKAction *rotation = [SKAction sequence:@[[SKAction rotateByAngle:(double)(1+((arc4random()% 10))/3) duration:(((double)arc4random() / 0x100000000)+0.3)*2.],[SKAction rotateToAngle:(double)(arc4random()/ 0x100000000)*M_2_PI duration:(((double)arc4random() / 0x100000000)+0.15)*3.]]];
-    [player runAction:[SKAction repeatActionForever:rotation]];
-    [player runAction:[SKAction rotateToAngle:(double)(arc4random()/ 0x100000000)*M_2_PI duration:0.0]];
-    __block SKAction *effectPop = [SKAction group:@[[SKAction sequence:@[[SKAction scaleTo:.0 duration:.0],[SKAction scaleTo:1.1 duration:.4],[SKAction scaleTo:1. duration:.2]]],[SKAction sequence:@[[SKAction fadeAlphaTo:0.0 duration:0],[SKAction fadeAlphaTo:0.7 duration:.6]]]]];
-    [player runAction:effectPop];
-    [pauser addChild:player];
-    for (int i=0; i<4; i++) {
-        SKSpriteNode *over = [SKSpriteNode spriteNodeWithImageNamed:@"over.png"];
-        over.size =player.size;
-        [over runAction:[SKAction rotateByAngle:(M_PI/2)*i duration:0]];
-        double random =(((double)arc4random() / 0x100000000)/2);
-        over.alpha =0;
-        over.name=@"unPause";
-        SKAction *flick = [SKAction fadeAlphaTo:(((double)arc4random() / 0x100000000)/2) duration:(random+0.5)];
-        //[over runAction:[SKAction repeatActionForever:flick]];
-        [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[flick,[SKAction fadeAlphaTo:0 duration:flick.duration/2]]]]];
-        [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[[SKAction waitForDuration:flick.duration],[SKAction rotateByAngle:M_PI/2 duration:0]]]]];
-        [player addChild:over];
-    }
-    
-    SKSpriteNode *spinner = [SKSpriteNode spriteNodeWithImageNamed:@"spinnerLogo.png"];
-    [spinner runAction:[SKAction colorizeWithColor:self.eColor colorBlendFactor:1. duration:0]];
-    spinner.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
-    spinner.name = @"spinner";
-    spinner.alpha=0;
-    spinner.size = CGSizeMake(100*kSizeMultiply(), 100*kSizeMultiply());
-    spinner.zPosition=3.5;
-    [spinner runAction:[SKAction repeatActionForever:[SKAction rotateByAngle:M_PI*2 duration:.7]]];
-    [spinner runAction:[SKAction fadeAlphaTo:1.0 duration:1.0]];
-    [pauser addChild:spinner];
-    
-    SKSpriteNode *spinner2 = [SKSpriteNode spriteNodeWithImageNamed:@"spinnerLogo.png"];
-    [spinner2 runAction:[SKAction colorizeWithColor:self.playerColor colorBlendFactor:1. duration:0]];
-    spinner2.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
-    spinner2.name = @"spinner";
-    spinner2.size = CGSizeMake(100*kSizeMultiply(), 100*kSizeMultiply());
-    spinner2.zPosition=3.5;
-    spinner2.alpha=0;
-    [spinner2 setScale:-1];
-    [spinner2 runAction:[SKAction repeatActionForever:[SKAction rotateByAngle:M_PI*2 duration:.7]]];
-    [spinner2 runAction:[SKAction fadeAlphaTo:1.0 duration:1.0]];
-    [pauser addChild:spinner2];
-    
-    SKSpriteNode *ender = [SKSpriteNode spriteNodeWithImageNamed:@"close.png"];
-    //
-    [ender runAction:[SKAction colorizeWithColor:[UIColor blackColor] colorBlendFactor:.8 duration:0]];
-    ender.size =CGSizeMake(30*kSizeMultiply(), 30*kSizeMultiply());
-    ender.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMaxY(self.frame)*3/4);
-    ender.name = @"end";
-    ender.zPosition=4.;
-    [ender runAction:[SKAction repeatActionForever:rotation.reversedAction]];
-    [ender runAction:[SKAction rotateToAngle:(double)(arc4random()/ 0x100000000)*M_2_PI duration:0.0]];
-    [ender runAction:effectPop];
-    [pauser addChild:ender];
-    for (int i=0; i<4; i++) {
-        SKSpriteNode *over = [SKSpriteNode spriteNodeWithImageNamed:@"over.png"];
-        over.size =player.size;
-        [over runAction:[SKAction rotateByAngle:(M_PI/2)*i duration:0]];
-        double random =(((double)arc4random() / 0x100000000)/2);
-        over.alpha =0;
-        over.name=@"end";
-        SKAction *flick = [SKAction fadeAlphaTo:(((double)arc4random() / 0x100000000)/2) duration:(random+0.5)];
-        //[over runAction:[SKAction repeatActionForever:flick]];
-        [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[flick,[SKAction fadeAlphaTo:0 duration:flick.duration/2]]]]];
-        [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[[SKAction waitForDuration:flick.duration],[SKAction rotateByAngle:M_PI/2 duration:0]]]]];
-        [ender addChild:over];
-    }
-    
-    CGMutablePathRef myPath2 = CGPathCreateMutable();
-    SKShapeNode *ballE = [[SKShapeNode alloc] init];
-    CGPathAddArc(myPath2, NULL, 0,0, 22*kSizeMultiply(), 0, M_PI*2, YES);
-    ballE.path = myPath2;
-    ballE.position=ender.position;
-    ballE.name=@"end";
-    ballE.lineWidth = 1.0;
-    ballE.fillColor = [SKColor whiteColor];
-    ballE.strokeColor = [SKColor whiteColor];
-    ballE.glowWidth = 0.0;
-    ballE.alpha=.0;
-    ballE.zPosition=3.3;
-    [ballE runAction:[SKAction fadeAlphaTo:0.2 duration:.6]];
-    [pauser addChild:ballE];
+//    if(self.gamePause||self.gameOver)return;
+//    
+//    self.gamePause=YES;
+//    
+//    SKNode*pauser=[SKNode node];
+//    pauser.position=CGPointZero;
+//    pauser.name=@"pauser";
+//    [self addChild:pauser];
+//    
+//    SKSpriteNode *back = [SKSpriteNode spriteNodeWithColor:[UIColor whiteColor] size:self.frame.size];
+//    back.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+//    back.alpha=.0;
+//    back.zPosition=3.2;
+//    [back runAction:[SKAction fadeAlphaTo:0.8 duration:.2]];
+//    [pauser addChild:back];
+//    
+//    SKShapeNode *ball = [[SKShapeNode alloc] init];
+//    
+//    CGMutablePathRef myPath = CGPathCreateMutable();
+//    CGPathAddArc(myPath, NULL, 0,0, 55*kSizeMultiply(), 0, M_PI*2, YES);
+//    ball.path = myPath;
+//    ball.position=back.position;
+//    ball.name=@"unPause";
+//    ball.lineWidth = 1.0*kSizeMultiply();
+//    ball.fillColor = [SKColor whiteColor];
+//    ball.strokeColor = [SKColor whiteColor];
+//    ball.glowWidth = 0.0;
+//    ball.alpha=.0;
+//    ball.zPosition=3.3;
+//    [ball runAction:[SKAction fadeAlphaTo:0.6 duration:.6]];
+//    [pauser addChild:ball];
+//    
+//    SKSpriteNode *player = [SKSpriteNode spriteNodeWithImageNamed:@"pause.png"];
+//    //
+//    [player runAction:[SKAction colorizeWithColor:[UIColor lightGrayColor] colorBlendFactor:.8 duration:0]];
+//    player.size =CGSizeMake(75*kSizeMultiply(), 75*kSizeMultiply());
+//    player.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+//    player.name = @"unPause";
+//    player.zPosition=4.;
+//    SKAction *rotation = [SKAction sequence:@[[SKAction rotateByAngle:(double)(1+((arc4random()% 10))/3) duration:(((double)arc4random() / 0x100000000)+0.3)*2.],[SKAction rotateToAngle:(double)(arc4random()/ 0x100000000)*M_2_PI duration:(((double)arc4random() / 0x100000000)+0.15)*3.]]];
+//    [player runAction:[SKAction repeatActionForever:rotation]];
+//    [player runAction:[SKAction rotateToAngle:(double)(arc4random()/ 0x100000000)*M_2_PI duration:0.0]];
+//    __block SKAction *effectPop = [SKAction group:@[[SKAction sequence:@[[SKAction scaleTo:.0 duration:.0],[SKAction scaleTo:1.1 duration:.4],[SKAction scaleTo:1. duration:.2]]],[SKAction sequence:@[[SKAction fadeAlphaTo:0.0 duration:0],[SKAction fadeAlphaTo:0.7 duration:.6]]]]];
+//    [player runAction:effectPop];
+//    [pauser addChild:player];
+//    for (int i=0; i<4; i++) {
+//        SKSpriteNode *over = [SKSpriteNode spriteNodeWithImageNamed:@"over.png"];
+//        over.size =player.size;
+//        [over runAction:[SKAction rotateByAngle:(M_PI/2)*i duration:0]];
+//        double random =(((double)arc4random() / 0x100000000)/2);
+//        over.alpha =0;
+//        over.name=@"unPause";
+//        SKAction *flick = [SKAction fadeAlphaTo:(((double)arc4random() / 0x100000000)/2) duration:(random+0.5)];
+//        //[over runAction:[SKAction repeatActionForever:flick]];
+//        [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[flick,[SKAction fadeAlphaTo:0 duration:flick.duration/2]]]]];
+//        [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[[SKAction waitForDuration:flick.duration],[SKAction rotateByAngle:M_PI/2 duration:0]]]]];
+//        [player addChild:over];
+//    }
+//    
+//    SKSpriteNode *spinner = [SKSpriteNode spriteNodeWithImageNamed:@"spinnerLogo.png"];
+//    [spinner runAction:[SKAction colorizeWithColor:self.eColor colorBlendFactor:1. duration:0]];
+//    spinner.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+//    spinner.name = @"spinner";
+//    spinner.alpha=0;
+//    spinner.size = CGSizeMake(100*kSizeMultiply(), 100*kSizeMultiply());
+//    spinner.zPosition=3.5;
+//    [spinner runAction:[SKAction repeatActionForever:[SKAction rotateByAngle:M_PI*2 duration:.7]]];
+//    [spinner runAction:[SKAction fadeAlphaTo:1.0 duration:1.0]];
+//    [pauser addChild:spinner];
+//    
+//    SKSpriteNode *spinner2 = [SKSpriteNode spriteNodeWithImageNamed:@"spinnerLogo.png"];
+//    [spinner2 runAction:[SKAction colorizeWithColor:self.playerColor colorBlendFactor:1. duration:0]];
+//    spinner2.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+//    spinner2.name = @"spinner";
+//    spinner2.size = CGSizeMake(100*kSizeMultiply(), 100*kSizeMultiply());
+//    spinner2.zPosition=3.5;
+//    spinner2.alpha=0;
+//    [spinner2 setScale:-1];
+//    [spinner2 runAction:[SKAction repeatActionForever:[SKAction rotateByAngle:M_PI*2 duration:.7]]];
+//    [spinner2 runAction:[SKAction fadeAlphaTo:1.0 duration:1.0]];
+//    [pauser addChild:spinner2];
+//    
+//    SKSpriteNode *ender = [SKSpriteNode spriteNodeWithImageNamed:@"close.png"];
+//    //
+//    [ender runAction:[SKAction colorizeWithColor:[UIColor blackColor] colorBlendFactor:.8 duration:0]];
+//    ender.size =CGSizeMake(30*kSizeMultiply(), 30*kSizeMultiply());
+//    ender.position=CGPointMake(CGRectGetMidX(self.frame), CGRectGetMaxY(self.frame)*3/4);
+//    ender.name = @"end";
+//    ender.zPosition=4.;
+//    [ender runAction:[SKAction repeatActionForever:rotation.reversedAction]];
+//    [ender runAction:[SKAction rotateToAngle:(double)(arc4random()/ 0x100000000)*M_2_PI duration:0.0]];
+//    [ender runAction:effectPop];
+//    [pauser addChild:ender];
+//    for (int i=0; i<4; i++) {
+//        SKSpriteNode *over = [SKSpriteNode spriteNodeWithImageNamed:@"over.png"];
+//        over.size =player.size;
+//        [over runAction:[SKAction rotateByAngle:(M_PI/2)*i duration:0]];
+//        double random =(((double)arc4random() / 0x100000000)/2);
+//        over.alpha =0;
+//        over.name=@"end";
+//        SKAction *flick = [SKAction fadeAlphaTo:(((double)arc4random() / 0x100000000)/2) duration:(random+0.5)];
+//        //[over runAction:[SKAction repeatActionForever:flick]];
+//        [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[flick,[SKAction fadeAlphaTo:0 duration:flick.duration/2]]]]];
+//        [over runAction:[SKAction repeatActionForever:[SKAction sequence:@[[SKAction waitForDuration:flick.duration],[SKAction rotateByAngle:M_PI/2 duration:0]]]]];
+//        [ender addChild:over];
+//    }
+//    
+//    CGMutablePathRef myPath2 = CGPathCreateMutable();
+//    SKShapeNode *ballE = [[SKShapeNode alloc] init];
+//    CGPathAddArc(myPath2, NULL, 0,0, 22*kSizeMultiply(), 0, M_PI*2, YES);
+//    ballE.path = myPath2;
+//    ballE.position=ender.position;
+//    ballE.name=@"end";
+//    ballE.lineWidth = 1.0;
+//    ballE.fillColor = [SKColor whiteColor];
+//    ballE.strokeColor = [SKColor whiteColor];
+//    ballE.glowWidth = 0.0;
+//    ballE.alpha=.0;
+//    ballE.zPosition=3.3;
+//    [ballE runAction:[SKAction fadeAlphaTo:0.2 duration:.6]];
+//    [pauser addChild:ballE];
 }
--(void)unPauseGame:(NSNotification*)note{
-}
-
 
 
 #pragma mark - Beta Testing
@@ -2539,232 +2378,194 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     [saveArray writeToFile:[self dataFilePath] atomically:YES];
 }
 
-#pragma mark - Tutorial Section
--(void)initiateTutorial{
-    /*
-     1.move
-     2.+
-     3.n
-     4.+
-     5.+
-     6.--
-     7.delete
-     */
-    if([[saveArray objectAtIndex:3]integerValue]<=1){
-        [saveArray replaceObjectAtIndex:3 withObject:[NSNumber numberWithInt:1]];
-        [self saveData];
-    }
+
+#pragma mark - Game Center
+- (void)gameCenterViewControllerDidFinish:(GKGameCenterViewController*)gameCenterViewController {
     
-    SKNode*player=[self childNodeWithName:@"player"];
+    UIViewController *vc = self.view.window.rootViewController;
+    [vc dismissViewControllerAnimated:YES completion:nil];
+    [self changeScene];
+}
+
+-(void)matchmakerViewControllerWasCancelled:(GKMatchmakerViewController*)viewController{
+    UIViewController *vc = self.view.window.rootViewController;
+    [vc dismissViewControllerAnimated:YES completion:nil];
+    [self changeScene];
+}
+
+-(void)matchmakerViewController:(GKMatchmakerViewController*)viewController didFailWithError:(NSError*)error{
+    UIViewController *vc = self.view.window.rootViewController;
+    [vc dismissViewControllerAnimated:YES completion:nil];
+    [self changeScene];
+}
+
+
+-(void)hostMatch{
+    GKMatchRequest *request = [[GKMatchRequest alloc]init];
+    request.minPlayers=2;
+    request.maxPlayers=2;
     
-    
-    float textTime = .8;
-    
-    switch (tutorial) {
-        case 1:
-        {
-            self.eLive=1;
-            
-            SKLabelNode* word1 = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
-            
-            word1.name = @"word1";
-            word1.alpha=.0;
-            word1.fontSize = 14*kSizeMultiply();
-            word1.fontColor = [SKColor grayColor];
-            word1.text = [NSString stringWithFormat:@"your [Charge] (You):"];
-            word1.position = CGPointMake(CGRectGetMidX(self.frame),(CGRectGetMidY(self.frame))+((kContainerSize().height+kContainerSpace())*(-2))+player.frame.size.height+25);
-            [self addChild:word1];
-            [word1 runAction:[SKAction sequence:@[[SKAction waitForDuration:1.],[SKAction fadeAlphaTo:1. duration:textTime]]]];
-            
-            SKLabelNode* word2 = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
-            word2.name = @"word2";
-            word2.alpha=.0;
-            word2.fontSize = 14*kSizeMultiply();
-            word2.fontColor = [SKColor grayColor];
-            word2.text = [NSString stringWithFormat:@"moves in rhythm [Pulse]"];
-            word2.position = CGPointMake(CGRectGetMidX(self.frame),(CGRectGetMidY(self.frame))+((kContainerSize().height+kContainerSpace())*(-2))-player.frame.size.height-25);
-            [self addChild:word2];
-            [word2 runAction:[SKAction sequence:@[[SKAction waitForDuration:2.],[SKAction fadeAlphaTo:1. duration:textTime]]]];
-            
-            
-            SKShapeNode *indicator = [[SKShapeNode alloc] init];
-            CGMutablePathRef myPath = CGPathCreateMutable();
-            CGPathAddArc(myPath, NULL, 0,0, player.frame.size.width/2, 0, M_PI*2, YES);
-            indicator.path = myPath;
-            indicator.name=@"toucher";
-            indicator.lineWidth = 3.0;
-            indicator.fillColor = [SKColor clearColor];
-            indicator.strokeColor = [SKColor grayColor];
-            indicator.glowWidth = .3;
-            indicator.zPosition=4.;
-            
-            [indicator setScale:0.01];
-            [indicator setAlpha:.7];
-            SKAction *appear = [SKAction fadeAlphaTo:0.1 duration:0.4];
-            SKAction *pop = [SKAction sequence:@[[SKAction scaleTo:2. duration:appear.duration*2],[SKAction scaleTo:.01 duration:.0],[SKAction waitForDuration:1.]]];
-            [appear setTimingMode:SKActionTimingEaseInEaseOut];
-            [pop setTimingMode:SKActionTimingEaseInEaseOut];
-            
-            [indicator runAction:appear];
-            [indicator runAction:[SKAction repeatActionForever:pop]];
-            indicator.position = CGPointMake(-100,-100);
-            
-            [self addChild:indicator];
-            
-            [indicator runAction:[SKAction sequence:@[[SKAction waitForDuration:4.0],[SKAction moveTo:CGPointMake(CGRectGetMidX(self.frame)/2, kDistanceofPlayerLine()*2/3) duration:.0]]]];
-            
-            tutorial=2;
-        }
-            break;
-            
-        case 2:
-        {
-            SKNode *word1=[self childNodeWithName:@"word1"];
-            SKNode *word2=[self childNodeWithName:@"word2"];
-            [word1 runAction:[SKAction fadeAlphaTo:.0 duration:textTime]];
-            [word2 runAction:[SKAction fadeAlphaTo:.0 duration:textTime]];
-            
-            SKLabelNode* word3 = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
-            word3.name = @"word3";
-            word3.alpha=.0;
-            word3.fontSize = 14*kSizeMultiply();
-            word3.fontColor = [SKColor grayColor];
-            word3.text = [NSString stringWithFormat:@"tap/hold + to charge"];
-            word3.position =  CGPointMake(CGRectGetMidX(self.frame),(CGRectGetMidY(self.frame))+((kContainerSize().height+kContainerSpace())*(-2))-player.frame.size.height*4/5);
-            [self addChild:word3];
-            [word3 runAction:[SKAction sequence:@[[SKAction waitForDuration:textTime+.2],[SKAction fadeAlphaTo:1. duration:textTime]]]];
-            SKNode *indicator = [self childNodeWithName:@"toucher"];
-            [indicator runAction:[SKAction moveTo:CGPointMake(CGRectGetMidX(self.frame), kDistanceofPlayerLine()*2/3) duration:.0]];
-            
-            tutorial=3;
-        }
-            break;
-            
-        case 3:
-        {
-            SKNode *word3=[self childNodeWithName:@"word3"];
-            [word3 runAction:[SKAction fadeAlphaTo:.0 duration:1.]];
-            
-            SKLabelNode* word4 = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
-            word4.name = @"word4";
-            word4.alpha=.0;
-            word4.fontSize = 14*kSizeMultiply();
-            word4.fontColor = [SKColor grayColor];
-            word4.text = [NSString stringWithFormat:@"n to shield"];
-            word4.position =  CGPointMake(CGRectGetMidX(self.frame),(CGRectGetMidY(self.frame))+((kContainerSize().height+kContainerSpace())*(-2))-player.frame.size.height*4/5);
-            [self addChild:word4];
-            [word4 runAction:[SKAction sequence:@[[SKAction waitForDuration:textTime+.2],[SKAction fadeAlphaTo:1. duration:textTime]]]];
-            SKNode *indicator = [self childNodeWithName:@"toucher"];
-            [indicator runAction:[SKAction moveTo:CGPointMake(CGRectGetMidX(self.frame)*1.75, kDistanceofPlayerLine()*2/3) duration:.0]];
-            
-            tutorial=4;
-        }
-            break;
-            
-        case 4:
-        {
-            SKNode *word3=[self childNodeWithName:@"word3"];
-            [word3 runAction:[SKAction fadeAlphaTo:.0 duration:textTime]];
-            SKNode *word2=[self childNodeWithName:@"word4"];
-            [word2 runAction:[SKAction fadeAlphaTo:.0 duration:textTime]];
-            
-            SKLabelNode* word1 = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
-            
-            word1.name = @"word9";
-            word1.alpha=.0;
-            word1.fontSize = 14*kSizeMultiply();
-            word1.fontColor = [SKColor grayColor];
-            word1.text = [NSString stringWithFormat:@"shield use 1 +. You can n without +"];
-            word1.position = CGPointMake(CGRectGetMidX(self.frame),(CGRectGetMidY(self.frame))+((kContainerSize().height+kContainerSpace())*(-2))+player.frame.size.height*2/3);
-            [self addChild:word1];
-            [word1 runAction:[SKAction fadeAlphaTo:1. duration:textTime]];
-            
-            SKLabelNode* word4 = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
-            word4.name = @"word5";
-            word4.alpha=.0;
-            word4.fontSize = 14*kSizeMultiply();
-            word4.fontColor = [SKColor grayColor];
-            word4.text = [NSString stringWithFormat:@"charge + again"];
-            word4.position =  CGPointMake(CGRectGetMidX(self.frame),(CGRectGetMidY(self.frame))+((kContainerSize().height+kContainerSpace())*(-2))-player.frame.size.height*4/5);
-            [self addChild:word4];
-            [word4 runAction:[SKAction sequence:@[[SKAction waitForDuration:textTime+.2],[SKAction fadeAlphaTo:1. duration:textTime]]]];
-            SKNode *indicator = [self childNodeWithName:@"toucher"];
-            [indicator runAction:[SKAction moveTo:CGPointMake(CGRectGetMidX(self.frame), kDistanceofPlayerLine()*2/3) duration:.0]];
-            
-            tutorial=5;
-        }
-            break;
-            
-        case 5:
-        {
-            SKNode *word3=[self childNodeWithName:@"word9"];
-            [word3 runAction:[SKAction fadeAlphaTo:.0 duration:textTime]];
-            
-            tutorial=6;
-        }
-            break;
+    GKMatchmakerViewController *mmvc = [[GKMatchmakerViewController alloc]initWithMatchRequest:request];
+    mmvc.matchmakerDelegate=self;
+    UIViewController *vc = self.view.window.rootViewController;
+    [vc presentViewController: mmvc animated: YES completion:nil];
+}
+
+- (void)matchmakerViewController:(GKMatchmakerViewController *)viewController didFindMatch:(GKMatch *)theMatch {
+    UIViewController *vc = self.view.window.rootViewController;
+    [vc dismissViewControllerAnimated:YES completion:nil];
+    self.myMatch =theMatch;
+    theMatch.delegate=self;
+    if (!self.matchStarted && theMatch.expectedPlayerCount==0){
+        self.matchStarted=YES;
         
-        case 6:
-        {
-            SKNode *word3=[self childNodeWithName:@"word5"];
-            [word3 runAction:[SKAction fadeAlphaTo:.0 duration:textTime]];
-            
-            SKLabelNode* word4 = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
-            word4.name = @"word6";
-            word4.alpha=.0;
-            word4.fontSize = 14*kSizeMultiply();
-            word4.fontColor = [SKColor grayColor];
-            word4.text = [NSString stringWithFormat:@"-- to release"];
-            word4.position =  CGPointMake(CGRectGetMidX(self.frame),(CGRectGetMidY(self.frame))+((kContainerSize().height+kContainerSpace())*(-2))-player.frame.size.height*4/5);
-            [self addChild:word4];
-            [word4 runAction:[SKAction sequence:@[[SKAction waitForDuration:textTime+.2],[SKAction fadeAlphaTo:1. duration:textTime]]]];
-            SKNode *indicator = [self childNodeWithName:@"toucher"];
-            [indicator runAction:[SKAction moveTo:CGPointMake(CGRectGetMidX(self.frame)*1.5, kDistanceofPlayerLine()*2/3) duration:.0]];
-            
-            tutorial=7;
-        }
-            break;
-            
-        case 7:
-        {
-            SKLabelNode* word1 = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
-            
-            word1.name = @"word7";
-            word1.alpha=.0;
-            word1.fontSize = 14*kSizeMultiply();
-            word1.fontColor = [SKColor grayColor];
-            word1.text = [NSString stringWithFormat:@"charge + determines distance"];
-            word1.position = CGPointMake(CGRectGetMidX(self.frame),(CGRectGetMidY(self.frame))+((kContainerSize().height+kContainerSpace())*(-2))+player.frame.size.height*2/3);
-            [self addChild:word1];
-            [word1 runAction:[SKAction fadeAlphaTo:1. duration:textTime]];
-            
-            SKNode *word3=[self childNodeWithName:@"word6"];
-            [word3 runAction:[SKAction fadeAlphaTo:.0 duration:textTime]];
-            
-            SKLabelNode* word4 = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
-            word4.name = @"word8";
-            word4.alpha=.0;
-            word4.fontSize = 14*kSizeMultiply();
-            word4.fontColor = [SKColor grayColor];
-            word4.text = [NSString stringWithFormat:@"delete opposite [Charge]"];
-            word4.position =  CGPointMake(CGRectGetMidX(self.frame),(CGRectGetMidY(self.frame))+((kContainerSize().height+kContainerSpace())*(-2))-player.frame.size.height*4/5);
-            [self addChild:word4];
-            [word4 runAction:[SKAction sequence:@[[SKAction waitForDuration:textTime+.2],[SKAction fadeAlphaTo:1. duration:textTime]]]];
-            SKNode *indicator = [self childNodeWithName:@"toucher"];
-            [indicator runAction:[SKAction moveTo:CGPointMake(CGRectGetMidX(self.frame), (CGRectGetMidY(self.frame))+((kContainerSize().height+kContainerSpace())*(2))) duration:.0]];
-            [indicator runAction:[SKAction animateWithTextures:@[[SKTexture textureWithImageNamed:@"PlayerWhite.png"]] timePerFrame:.0]];
-            
-            
-            tutorial=8;
-        }
-            break;
-            
-            
-        default:
-            break;
+        //online match start here
+        
     }
+    NSLog(@"Ready to start match!");
+    [self lookupPlayers];
+}
+
+- (void)match:(GKMatch *)theMatch didReceiveData:(NSData *)data fromPlayer:(NSString *)playerID {
+    if (self.myMatch != theMatch) return;
     
+    NSArray *messageArray;
+    
+    if ([data length] == sizeof(Player1MoveType) ) {
+    NSLog(@"length %u",[data length]);
+    Player1MoveType *message = (Player1MoveType*)[data bytes];
+    self.eMoveType=*message;
+    NSLog(@"receive %u = %u",*message,self.eMoveType);
+    }
+    else if ([data length]==sizeof(messageArray)){
+        messageArray=(NSArray*)[data bytes];
+        self.eMoveQue=messageArray;
+    }
     
 }
+
+- (void)match:(GKMatch *)match player:(NSString *)playerID didChangeState:(GKPlayerConnectionState)state
+{
+    switch (state)
+    {
+        case GKPlayerStateConnected:
+            // Handle a new player connection.
+            break;
+        case GKPlayerStateDisconnected:
+            // A player just disconnected.
+            NSLog(@"disconnected");
+            [self changeScene];
+            break;
+    }
+    if (!self.matchStarted && match.expectedPlayerCount == 0)
+    {
+        self.matchStarted = YES;
+        // Handle initial match negotiation.
+        [self lookupPlayers];
+    }
+}
+
+
+
+// The match was unable to connect with the player due to an error.
+- (void)match:(GKMatch *)theMatch connectionWithPlayerFailed:(NSString *)playerID withError:(NSError *)error {
+    
+    if (self.myMatch != theMatch) return;
+    
+    NSLog(@"Failed to connect to player with error: %@", error.localizedDescription);
+    self.matchStarted = NO;
+    NSLog(@"error");
+}
+
+// The match was unable to be established with any players due to an error.
+- (void)match:(GKMatch *)theMatch didFailWithError:(NSError *)error {
+    
+    if (self.myMatch != theMatch) return;
+    
+    NSLog(@"Match failed with error: %@", error.localizedDescription);
+    self.matchStarted = NO;
+    NSLog(@"error");
+}
+
+
+- (void)lookupPlayers {
+    
+    NSLog(@"Looking up %d players...", self.myMatch.playerIDs.count);
+    [GKPlayer loadPlayersForIdentifiers:self.myMatch.playerIDs withCompletionHandler:^(NSArray *players, NSError *error) {
+        
+        if (error != nil) {
+            NSLog(@"Error retrieving player info: %@", error.localizedDescription);
+            self.matchStarted = NO;
+            [self matchEnded];
+        } else {
+            
+            // Populate players dict
+            self.playersDict = [NSMutableDictionary dictionaryWithCapacity:players.count];
+            for (GKPlayer *player in players) {
+                NSLog(@"Found player: %@", player.alias);
+                [playersDict setObject:player forKey:player.playerID];
+            }
+            
+            // Notify delegate match can begin
+            self.matchStarted = YES;
+            [self matchStart];
+            
+        }
+    }];
+    
+}
+
+-(void)matchStart{
+    NSLog(@"starts");
+    if (receivedRandom) {
+        //[self setGameState:kGameStateWaitingForStart];
+    } else {
+        //[self setGameState:kGameStateWaitingForRandomNumber];
+    }
+    [self sendRandomNumber];
+    //[self tryStartGame];
+    self.gameBegin=YES;
+}
+-(void)matchEnded{
+    
+}
+
+- (void)sendData:(NSData *)data {
+    NSError *error;
+    BOOL success = [self.myMatch sendDataToAllPlayers:data withDataMode:GKMatchSendDataReliable error:&error];
+    if (!success) {
+        NSLog(@"Error sending init packet");
+        [self matchEnded];
+    }
+}
+
+- (void)sendMove {
+    
+    Player1MoveType message;
+    message=self.player1MoveType;
+    NSLog(@"send %u size %lu",message,sizeof(Player1MoveType));
+    NSData *data = [NSData dataWithBytes:&message length:sizeof(Player1MoveType)];
+    [self sendData:data];
+    
+}
+
+-(void)sendQue{
+    NSArray *message;
+    message=[NSArray arrayWithArray:self.pMoveQue];
+    NSData *data = [NSData dataWithBytes:&message length:sizeof(message)];
+    NSLog(@"%u",[data length]);
+    [self sendData:data];
+}
+
+- (void)sendRandomNumber {
+    
+    MessageRandomNumber message;
+    message.message.messageType = kMessageTypeRandomNumber;
+    message.randomNumber = ourRandom;
+    NSData *data = [NSData dataWithBytes:&message length:sizeof(MessageRandomNumber)];
+    [self sendData:data];
+}
+
+
 
 @end

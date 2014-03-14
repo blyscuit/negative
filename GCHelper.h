@@ -8,11 +8,14 @@
 
 #import <Foundation/Foundation.h>
 #import <GameKit/GameKit.h>
+#import "ViewController.h"
+#import <SpriteKit/SpriteKit.h>
+#import "StartScene.h"
 
 @protocol GCHelperDelegate
-- (void)matchStarted;
-- (void)matchEnded;
-- (void)match:(GKMatch *)match didReceiveData:(NSData *)data
+- (void)matchStartedHelper;
+- (void)matchEndedHelper;
+- (void)matchHelper:(GKMatch *)match didReceiveData:(NSData *)data
    fromPlayer:(NSString *)playerID;
 @end
 
@@ -20,10 +23,10 @@
     BOOL gameCenterAvailable;
     BOOL userAuthenticated;
     
-    UIViewController *presentingViewController;
-    GKMatch *match;
-    BOOL matchStarted;
-    id <GCHelperDelegate> delegate;
+    UIViewController *presentingViewControllerHelper;
+    GKMatch *matchHelper;
+    BOOL matchStartedHelper;
+    //id <GCHelperDelegate> delegate;
 }
 
 @property (assign, readonly) BOOL gameCenterAvailable;
@@ -31,8 +34,8 @@
 + (GCHelper *)sharedInstance;
 - (void)authenticateLocalUser;
 
-@property (retain) UIViewController *presentingViewController;
-@property (retain) GKMatch *match;
+@property (retain) UIViewController *presentingViewControllerHelper;
+@property (retain) GKMatch *matchHelper;
 @property (assign) id <GCHelperDelegate> delegate;
 
 - (void)findMatchWithMinPlayers:(int)minPlayers maxPlayers:(int)maxPlayers

@@ -7,10 +7,11 @@
 //
 
 #import "GCHelper.h"
+#import <SpriteKit/SpriteKit.h>
 
 @implementation GCHelper
 
-@synthesize gameCenterAvailable,presentingViewController,match,delegate;
+@synthesize gameCenterAvailable,presentingViewControllerHelper,matchHelper,delegate;
 
 #pragma mark Init
 
@@ -82,11 +83,12 @@ static GCHelper *sharedHelper = nil;
     
     if (!gameCenterAvailable) return;
     
-    matchStarted = NO;
-    self.match = nil;
-    self.presentingViewController = viewController;
+    matchStartedHelper = NO;
+    self.matchHelper = nil;
+    self.presentingViewControllerHelper = viewController;
     delegate = theDelegate;
-    [presentingViewController dismissModalViewControllerAnimated:NO];
+    
+    [presentingViewControllerHelper dismissModalViewControllerAnimated:NO];
     
     GKMatchRequest *request = [[GKMatchRequest alloc] init];
     request.minPlayers = minPlayers;
@@ -96,7 +98,7 @@ static GCHelper *sharedHelper = nil;
     [[GKMatchmakerViewController alloc] initWithMatchRequest:request];
     mmvc.matchmakerDelegate = self;
     
-    [presentingViewController presentModalViewController:mmvc animated:YES];
+    [presentingViewControllerHelper presentModalViewController:mmvc animated:YES];
     
 }
 
@@ -104,21 +106,21 @@ static GCHelper *sharedHelper = nil;
 
 // The user has cancelled matchmaking
 - (void)matchmakerViewControllerWasCancelled:(GKMatchmakerViewController *)viewController {
-    [presentingViewController dismissModalViewControllerAnimated:YES];
+    
 }
 
 // Matchmaking has failed with an error
 - (void)matchmakerViewController:(GKMatchmakerViewController *)viewController didFailWithError:(NSError *)error {
-    [presentingViewController dismissModalViewControllerAnimated:YES];
+    [presentingViewControllerHelper dismissModalViewControllerAnimated:YES];
     NSLog(@"Error finding match: %@", error.localizedDescription);
 }
 
 // A peer-to-peer match has been found, the game should start
 - (void)matchmakerViewController:(GKMatchmakerViewController *)viewController didFindMatch:(GKMatch *)theMatch {
-    [presentingViewController dismissModalViewControllerAnimated:YES];
-    self.match = theMatch;
-    match.delegate = self;
-    if (!matchStarted && match.expectedPlayerCount == 0) {
+    [presentingViewControllerHelper dismissModalViewControllerAnimated:YES];
+    self.matchHelper = theMatch;
+    matchHelper.delegate = self;
+    if (!matchStartedHelper && matchHelper.expectedPlayerCount == 0) {
         NSLog(@"Ready to start match!");
     }
 }
@@ -127,21 +129,21 @@ static GCHelper *sharedHelper = nil;
 
 // The match received data sent from the player.
 - (void)match:(GKMatch *)theMatch didReceiveData:(NSData *)data fromPlayer:(NSString *)playerID {
-    if (match != theMatch) return;
+    if (matchHelper != theMatch) return;
     
-    [delegate match:theMatch didReceiveData:data fromPlayer:playerID];
+    [delegate matchHelper:theMatch didReceiveData:data fromPlayer:playerID];
 }
 
 // The player state changed (eg. connected or disconnected)
 - (void)match:(GKMatch *)theMatch player:(NSString *)playerID didChangeState:(GKPlayerConnectionState)state {
-    if (match != theMatch) return;
+    if (matchHelper != theMatch) return;
     
     switch (state) {
         case GKPlayerStateConnected:
             // handle a new player connection.
             NSLog(@"Player connected!");
             
-            if (!matchStarted && theMatch.expectedPlayerCount == 0) {
+            if (!matchStartedHelper && theMatch.expectedPlayerCount == 0) {
                 NSLog(@"Ready to start match!");
             }
             
@@ -149,8 +151,8 @@ static GCHelper *sharedHelper = nil;
         case GKPlayerStateDisconnected:
             // a player just disconnected.
             NSLog(@"Player disconnected!");
-            matchStarted = NO;
-            [delegate matchEnded];
+            matchStartedHelper = NO;
+            [delegate matchEndedHelper];
             break;
     }
 }
@@ -158,21 +160,21 @@ static GCHelper *sharedHelper = nil;
 // The match was unable to connect with the player due to an error.
 - (void)match:(GKMatch *)theMatch connectionWithPlayerFailed:(NSString *)playerID withError:(NSError *)error {
     
-    if (match != theMatch) return;
+    if (matchHelper != theMatch) return;
     
     NSLog(@"Failed to connect to player with error: %@", error.localizedDescription);
-    matchStarted = NO;
-    [delegate matchEnded];
+    matchStartedHelper = NO;
+    [delegate matchEndedHelper];
 }
 
 // The match was unable to be established with any players due to an error.
 - (void)match:(GKMatch *)theMatch didFailWithError:(NSError *)error {
     
-    if (match != theMatch) return;
+    if (matchHelper != theMatch) return;
     
     NSLog(@"Match failed with error: %@", error.localizedDescription);
-    matchStarted = NO;
-    [delegate matchEnded];
+    matchStartedHelper = NO;
+    [delegate matchEndedHelper];
 }
 
 @end

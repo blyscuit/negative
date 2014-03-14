@@ -178,6 +178,15 @@
         bird.alpha=1.0;
         [back addChild:bird];
         
+        
+        
+        SKSpriteNode *achievement = [SKSpriteNode spriteNodeWithImageNamed:@"music.png"];
+        achievement.size=CGSizeMake(30, 30);
+        achievement.position = CGPointMake(achievement.frame.size.width/2, 200);
+        achievement.name = @"achievement";
+        achievement.zPosition = 1.0f;
+        [self addChild:achievement];
+        
     }
     return self;
 }
@@ -423,6 +432,7 @@
         
         StartScene *startS = [[StartScene alloc]initWithSize:self.size];
         startS.scaleMode = SKSceneScaleModeAspectFill;
+        startS.multiScreen=YES;
         [self.view presentScene:startS transition:[SKTransition pushWithDirection:SKTransitionDirectionLeft duration:0.8]];
     }
     
@@ -455,6 +465,8 @@
         gameScene.bgMusic=delegate.bgMusic;
         gameScene.tutorial=1;
         [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65]];
+    }else if ([node.name isEqualToString:@"achievement"]){
+        [self loadAchievement];
     }
     
     if (self.dragLock) {
@@ -569,6 +581,22 @@
     }
 }
 
+#pragma mark - Game Center
+- (void)gameCenterViewControllerDidFinish:(GKGameCenterViewController*)gameCenterViewController {
+    
+    UIViewController *vc = self.view.window.rootViewController;
+    [vc dismissViewControllerAnimated:YES completion:nil];
+}
 
+-(void)loadAchievement{
+    GKGameCenterViewController *gameCenterController = [[GKGameCenterViewController alloc] init];
+    if (gameCenterController != nil)
+    {
+        gameCenterController.gameCenterDelegate = self;
+        gameCenterController.viewState = GKGameCenterViewControllerStateAchievements;
+        UIViewController *vc = self.view.window.rootViewController;
+        [vc presentViewController: gameCenterController animated: YES completion:nil];
+    }
+}
 
 @end

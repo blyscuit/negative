@@ -58,9 +58,6 @@ static inline float kDistanceofPlayerLine(){
 static inline float kSizeMultiply(){
     return [[UIDevice currentDevice]userInterfaceIdiom]==UIUserInterfaceIdiomPhone ? 1:1.5 ;
 }
-static inline float kMenuY(){
-    return [[UIDevice currentDevice]userInterfaceIdiom]==UIUserInterfaceIdiomPhone ? IS_WIDESCREEN ? 0:20 :0 ;
-}
 
 
 
@@ -2110,6 +2107,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     
     StartScene* gameScene = [[StartScene alloc] initWithSize:self.size];
     gameScene.scaleMode = SKSceneScaleModeAspectFill;
+    gameScene.multiScreen=YES;
     [self.view presentScene:gameScene transition:[SKTransition pushWithDirection:SKTransitionDirectionUp duration:0.8]];
 }
 
