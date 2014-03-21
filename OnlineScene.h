@@ -23,9 +23,11 @@
 @property NSInteger tutorial;
 @property NSInteger level;
 @property NSMutableArray *saveArray;
+@property NSInteger score;
 
 @property GKMatch* myMatch;
 @property BOOL matchStarted;
+@property BOOL invite;
 
 
 @property (retain) NSMutableDictionary *playersDict;

@@ -106,6 +106,8 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 @property NSInteger playerShieldCharge;
 @property UIColor *playerColor;
 @property SKLabelNode* playerSpeech;
+@property NSInteger playerChargeThisTurn;
+@property BOOL playerHit;
 
 @property BOOL eGuardable;
 @property NSInteger eCharge;
@@ -115,6 +117,8 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 @property NSInteger eShieldCharge;
 @property UIColor *eColor;
 @property SKLabelNode* eSpeech;
+@property NSInteger eChargeThisTurn;
+@property BOOL eHit;
 
 @property AVAudioPlayer *backgroundAudioPlayer;
 
@@ -132,12 +136,12 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         [self createContent];
         self.contentCreated = YES;
         
-        
         self.physicsWorld.contactDelegate = self;
         
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pauseGame:) name:UIApplicationWillResignActiveNotification object:nil];
         //[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(unPauseGame:)  name:UIApplicationDidBecomeActiveNotification  object:nil];
     }
+    
 }
 
 -(void)createContent{
@@ -176,7 +180,10 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     self.eGuardable=YES;
     self.eLive=2;
     self.eLive=maxLives;
-    if(multiMode)[self setupEnemyButton];
+    if(multiMode){
+        [self setupEnemyButton];
+        [self reportAchievementIdentifier:@"multi" percentComplete:1.];
+    }
     
     self.player1MoveType = none;
     self.eMoveType = none;
@@ -984,8 +991,11 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                 [self endGame:Enemy];
                 return;
             }
+
+            [self textAnimationOn:playerSpeech WithText:1];
             
             [self setupPlayerWithSize:kSecondPlayerSize() Location:Enemy.position];
+            [self textAnimationOn:playerSpeech WithText:1];
         }else if ([Enemy.name isEqualToString:@"enemy"]){
             
             self.eLive--;
@@ -994,6 +1004,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                 return;
             }
             [self setupEnemyWithSize:kSecondPlayerSize() Location:Enemy.position];
+            [self textAnimationOn:eSpeech WithText:1];
         }
         
         [Enemy removeFromParent];
@@ -1003,6 +1014,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 
 -(void)checkCharge{
     if (self.playerUsingType==PlayerCharge&&self.eUsingType==ECharge&&(self.playerCharge<3&&self.eCharge<3)) {
+        
         
         AVSpeechSynthesizer *av = [[AVSpeechSynthesizer alloc] init];
         AVSpeechUtterance *utterance = [[AVSpeechUtterance alloc]initWithString:@"CHARGE!"];
@@ -1017,6 +1029,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         if (self.playerShieldCharge<7) {
             self.playerShieldCharge++;
         }else{
+            self.playerHit=NO;
             self.playerShieldCharge=0;
             self.playerGuardable=YES;
             
@@ -1048,6 +1061,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         if (self.eShieldCharge<7) {
             self.eShieldCharge++;
         }else{
+            self.eHit=NO;
             self.eShieldCharge=0;
             self.eGuardable=YES;
             
@@ -1112,19 +1126,46 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             
             NSInteger maxFire = self.playerCharge;
             
+            self.playerHit=NO;
+            
+            BOOL willBreakGuard=NO;
+            
+            if(self.enemyPosition<=((self.playerPosition + self.playerCharge)-2)&&self.eUsingType==EGuard&&!guardBreak){
+                willBreakGuard=YES;
+            }
+            
+            if (self.enemyPosition<=(self.playerPosition + self.playerCharge)&&self.eUsingType!=EGuard) {
+                if (self.eUsingType==EFire&&self.enemyPosition<=(self.playerPosition + self.eCharge)) {
+                    self.playerUsingType=PlayerGuard;
+                    [self reportAchievementIdentifier:@"hithit" percentComplete:1.];
+                }else{
+                    self.playerHit=YES;
+                }
+            }
+            self.playerChargeThisTurn=self.playerCharge;
+            self.playerCharge =0;
+            
             SKAction *magicFade = [SKAction sequence:@[
                                                        [SKAction waitForDuration:1.2],
                                                        [SKAction removeFromParent]]];
             [magicFade setTimingMode:SKActionTimingEaseIn];
             [projectile runAction:magicFade completion:^{
-                if (self.enemyPosition<=(self.playerPosition + self.playerCharge)&&self.eUsingType!=EGuard) {
-                    if (self.eUsingType==EFire&&self.enemyPosition<=(self.playerPosition + self.eCharge)) {
-                        self.playerUsingType=PlayerGuard;
-                    }else{
-                        [self decreaseLifeOn:enemy];
-                    }
+                if(self.playerHit){
+                    [self decreaseLifeOn:enemy];
                 }
-                self.playerCharge =0;
+                if(willBreakGuard){
+                    self.eGuardable=NO;
+                    self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"shieldBreak" ofType:@"sks"];
+                    self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
+                    self.magicParticle.particlePosition = CGPointMake(0,-35*kSizeMultiply());
+                    self.magicParticle.zPosition =1.5;
+                    [enemy addChild:self.magicParticle];
+                    self.eUsingType=ENone;
+                    self.eMoveType=ENone;
+                    SKNode *control = [self childNodeWithName:@"enemyControl"];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"battle.png"]]];
+                    [self reportAchievementIdentifier:@"guardbreak" percentComplete:1.];
+                }
             }];
             
             projectile.speed = 2/self.timePerMove;
@@ -1347,7 +1388,10 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             if (self.playerCharge<0) {
                 self.playerCharge=0;
             }
-            if(self.playerCharge>=3)return;
+            if(self.playerCharge>=3){
+                [self reportAchievementIdentifier:@"maxcharge" percentComplete:1.];
+            return;
+            }
             self.playerCharge++;
             
             SKNode *player = [self childNodeWithName:@"player"];
@@ -1462,6 +1506,9 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                 [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"battle.png"]]];
                 self.playerCharge=0;
                 
+                
+                [self reportAchievementIdentifier:@"break" percentComplete:1.];
+                
                 return;
             }
             
@@ -1534,15 +1581,40 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             
             int maxFire = self.eCharge;
             
+            self.eHit=NO;
+            
+            BOOL willBreakGuard=NO;
+            
+            if(self.enemyPosition<=((self.playerPosition + self.playerCharge)-2)&&self.eUsingType==EGuard&&!guardBreak){
+                willBreakGuard=YES;
+            }
+            
+            if (self.enemyPosition<=(self.playerPosition + self.eCharge)&&self.playerUsingType!=PlayerGuard) {
+                self.eHit=YES;
+            }
+            self.eCharge =0;
+            
             SKAction *magicFade = [SKAction sequence:@[
                                                        [SKAction waitForDuration:1.2],
                                                        [SKAction removeFromParent]]];
             [magicFade setTimingMode:SKActionTimingEaseIn];
             [projectile runAction:magicFade completion:^{
-                if (self.enemyPosition<=(self.playerPosition + self.eCharge)&&self.playerUsingType!=PlayerGuard) {
+                if(self.eHit){
                     [self decreaseLifeOn:enemy];
                 }
-                self.eCharge =0;
+                if(willBreakGuard) {
+                    self.playerGuardable=NO;
+                    self.myParticlePath = [[NSBundle mainBundle] pathForResource:@"shieldBreak" ofType:@"sks"];
+                    self.magicParticle = [NSKeyedUnarchiver unarchiveObjectWithFile:self.myParticlePath];
+                    self.magicParticle.particlePosition = CGPointMake(0,35*kSizeMultiply());
+                    self.magicParticle.zPosition =1.5;
+                    [enemy addChild:self.magicParticle];
+                    self.playerUsingType=none;
+                    self.player1MoveType=none;
+                    SKNode *control = [self childNodeWithName:@"playerControl"];
+                    [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"battle.png"]]];
+                    [self reportAchievementIdentifier:@"guardbreak" percentComplete:1.];
+                }
             }];
             
             projectile.speed = 2/self.timePerMove;
@@ -1781,6 +1853,9 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
                 [control runAction:[SKAction setTexture:[SKTexture textureWithImageNamed:@"battle.png"]]];
                 self.eCharge=0;
                 
+                
+                [self reportAchievementIdentifier:@"break" percentComplete:1.];
+                
                 return;
             }
             
@@ -1943,6 +2018,9 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     self.playerUsingType=self.player1MoveType;
     self.eUsingType=self.eMoveType;
     
+    self.playerChargeThisTurn=self.playerCharge;
+    self.eChargeThisTurn=self.eCharge;
+    
     [self checkCharge];
     
     [self readPlayer1Move];
@@ -1983,18 +2061,22 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         self.speed=self.speed*1.001;
         self.timePerMove = self.timePerMove/self.speed;
         
-        NSLog(@"%f",self.timePerMove);
+        //NSLog(@"%f",self.timePerMove);
 
         return;
     }
     self.speed=self.speed*pow(1.0005,self.turnPassed);
     self.timePerMove = self.timePerMove/self.speed;
-    NSLog(@"%f",self.timePerMove);
+    //NSLog(@"%f",self.timePerMove);
     
 }
 
 -(void)endGame:(SKNode*)loser{
     if(self.gameOver)return;
+    
+    if (self.playerLive>0&&!multiMode) {
+        [self reportAchievementIdentifier:@"cpu" percentComplete:1.];
+    }
     
     [loser removeAllActions];
     [loser removeFromParent];
@@ -2201,12 +2283,12 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     }else if ([nodeNames containsObject:@"eproj2"]&&[nodeNames containsObject:@"player"]&&self.playerUsingType!=PlayerGuard) {
         contact.bodyA.node.zPosition=3.1;
         contact.bodyB.node.zPosition=3.1;
-        [self textAnimationOn:eSpeech WithText:1];
+        //[self textAnimationOn:playerSpeech WithText:1];
         [self extraAnimation];
     }else if ([nodeNames containsObject:@"pproj2"]&&[nodeNames containsObject:@"enemy"]&&self.eUsingType!=EGuard) {
         contact.bodyA.node.zPosition=3.1;
         contact.bodyB.node.zPosition=3.1;
-        [self textAnimationOn:playerSpeech WithText:1];
+        //[self textAnimationOn:eSpeech WithText:1];
         [self extraAnimation];
     }
 
@@ -2228,7 +2310,11 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     double y =((double)arc4random() / 0x100000000);
     x+=0.2;
     y+=0.2;
-    [self runAction:[SKAction repeatAction:[SKAction sequence:@[[SKAction moveByX:8*x y:8*y duration:0.0005],[SKAction moveByX:-16*x y:-16*y duration:0.0005],[SKAction moveTo:CGPointZero duration:0.0005]]] count:3]];
+    for (SKNode *node in self.children) {
+        CGPoint original = node.position;
+        [node runAction:[SKAction repeatAction:[SKAction sequence:@[[SKAction moveByX:8*x y:8*y duration:0.0005],[SKAction moveByX:-16*x y:-16*y duration:0.0005],[SKAction moveTo:original duration:0.0005]]] count:3]];
+    }
+    
     [self runAction:[SKAction playSoundFileNamed:@"C6.m4a" waitForCompletion:NO]];
     [self runAction:[SKAction waitForDuration:.025] completion:^{
         [self setSpeed:1.];
@@ -2273,15 +2359,16 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     if ([text.name isEqualToString:@"playerSpeech"]){
         //NSString *text = textNumber
         
-        self.playerWords = [NSString stringWithFormat:@"wahaha!"];
+        self.playerWords = [NSString stringWithFormat:@"!"];
         playerSpeech.fontColor = [SKColor grayColor];
         playerSpeech.text = [NSString stringWithFormat:@"%@",self.playerWords];
     }else if ([text.name isEqualToString:@"eSpeech"]){
         
-        self.eWords = [NSString stringWithFormat:@"bam!"];
+        self.eWords = [NSString stringWithFormat:@"!"];
         eSpeech.fontColor = [SKColor grayColor];
         eSpeech.text = [NSString stringWithFormat:@"%@",self.eWords];
     }
+    [text runAction:[SKAction sequence:@[[SKAction waitForDuration:3.0],[SKAction scaleTo:.0 duration:.4],[SKAction removeFromParent]]]];
 }
 
 
@@ -2291,7 +2378,8 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     if(self.gamePause||self.gameOver)return;
     
     self.gamePause=YES;
-    NSLog(@"pause");
+    //NSLog(@"pause");
+    [self reportAchievementIdentifier:@"pause" percentComplete:1.];
     
     SKNode*pauser=[SKNode node];
     pauser.position=CGPointZero;
@@ -2557,6 +2645,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
         case 1:
         {
             self.eLive=1;
+            guardBreak=YES;
             
             SKLabelNode* word1 = [SKLabelNode labelNodeWithFontNamed:kFontMissionGothicName];
             
@@ -2747,6 +2836,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             [indicator runAction:[SKAction moveTo:CGPointMake(CGRectGetMidX(self.frame), (CGRectGetMidY(self.frame))+((kContainerSize().height+kContainerSpace())*(2))) duration:.0]];
             [indicator runAction:[SKAction animateWithTextures:@[[SKTexture textureWithImageNamed:@"PlayerWhite.png"]] timePerFrame:.0]];
             
+            [self reportAchievementIdentifier:@"tutorial" percentComplete:1.];
             
             tutorial=8;
         }
@@ -2758,6 +2848,24 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     }
     
     
+}
+
+- (void) reportAchievementIdentifier: (NSString*) identifier percentComplete: (float) percent
+{
+    GKAchievement *achievement = [[GKAchievement alloc] initWithIdentifier: identifier];
+    if (achievement)
+    {
+        achievement.percentComplete = percent*100.;
+        
+        NSArray *achievements = @[achievement];
+        [GKAchievement reportAchievements:achievements withCompletionHandler:^(NSError *error)
+         {
+             if (error != nil)
+             {
+                 NSLog(@"Error in reporting achievements: %@", error);
+             }
+         }];
+    }
 }
 
 @end

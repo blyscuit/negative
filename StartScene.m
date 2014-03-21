@@ -156,6 +156,10 @@ static inline CGSize kContainerSize()
         classicMButton.name = @"classicMButton";
         classicMButton.zPosition = 1.0f;
         [world addChild:classicMButton];
+            
+            
+            
+            [self reportAchievementIdentifier:@"classic" percentComplete:1.];
         }
         
         SKSpriteNode *config = [SKSpriteNode spriteNodeWithImageNamed:@"configFrame.png"];
@@ -174,6 +178,24 @@ static inline CGSize kContainerSize()
         [world addChild:configor];
         [configor runAction:[SKAction repeatActionForever:[SKAction rotateByAngle:-M_PI*2 duration:5]]];
         
+        SKSpriteNode *GCF = [SKSpriteNode spriteNodeWithImageNamed:@"GCFrame.png"];
+        GCF.size=CGSizeMake(20, 20);
+        GCF.anchorPoint=CGPointMake(0.5, .0);
+        GCF.position = CGPointMake(70-CGRectGetMidX(self.frame), 0-CGRectGetMidY(self.frame));
+        GCF.name = @"GC";
+        GCF.zPosition = .99f;
+        [world addChild:GCF];
+        
+        SKSpriteNode *GC = [SKSpriteNode spriteNodeWithImageNamed:@"GC.png"];
+        GC.size=CGSizeMake(20, 20);
+        GC.position = CGPointMake(70-CGRectGetMidX(self.frame), 9-CGRectGetMidY(self.frame));
+        GC.name = @"GC";
+        GC.zPosition = 1.0f;
+        [world addChild:GC];
+        //SKAction *fly = [SKAction moveByX:((double)arc4random() / 0x100000000) y:((double)arc4random() / 0x100000000) duration:((double)arc4random() / 0x100000000)];
+        [GC runAction:[SKAction repeatActionForever:[SKAction sequence:@[[SKAction moveByX:.0 y:2 duration:1.1],[SKAction waitForDuration:((double)arc4random() / 0x100000000) withRange:((double)arc4random() / 0x100000000)/2],[SKAction moveByX:-.0 y:-2 duration:1.1],[SKAction waitForDuration:((double)arc4random() / 0x100000000) withRange:((double)arc4random() / 0x100000000)/2]]]]];
+        [GC runAction:[SKAction repeatActionForever:[SKAction sequence:@[[SKAction scaleTo:0.92 duration:1.1],[SKAction waitForDuration:((double)arc4random() / 0x100000000) withRange:((double)arc4random() / 0x100000000)/2],[SKAction scaleTo:1.0 duration:1.1],[SKAction waitForDuration:((double)arc4random() / 0x100000000) withRange:((double)arc4random() / 0x100000000)/2]]]]];
+        
         
         SKSpriteNode *musicor = [SKSpriteNode spriteNodeWithImageNamed:@"music.png"];
         musicor.size=CGSizeMake(30, 30);
@@ -190,11 +212,56 @@ static inline CGSize kContainerSize()
         [self checkMusic];
         
         multiScreen=YES;
-        NSLog(@"%d",multiScreen);
+        //NSLog(@"%d",multiScreen);
         //if (multiScreen==0) {
         //    multiScreen=YES;
         //    [self zoomMulti];
         //}
+        
+        [self runAction:[SKAction waitForDuration:3.] completion:^{
+        [self reportAchievementIdentifier:@"welcome" percentComplete:1.];
+        }];
+        
+        
+        [GKMatchmaker sharedMatchmaker].inviteHandler = ^(GKInvite *acceptedInvite, NSArray *playersToInvite) {
+            // Insert game-specific code here to clean up any game in progress.
+            
+            
+            OnlineScene* gameScene = [[OnlineScene alloc] initWithSize:self.size];
+            gameScene.scaleMode = SKSceneScaleModeAspectFill;
+            gameScene.multiMode = NO;
+            gameScene.touchLocation = CGPointMake(CGRectGetMidX(self.frame), CGRectGetMidY(self.frame));
+            gameScene.guardBreak = YES;
+            gameScene.maxLives = 2;
+            gameScene.invite=YES;
+            AppDelegate *delegate =  ( AppDelegate *) [[UIApplication sharedApplication] delegate];
+            gameScene.bgMusic=delegate.bgMusic;
+            [self.view presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65f]];
+            
+            if (acceptedInvite)
+            {
+                gameScene.invite=YES;
+                GKMatchmakerViewController *mmvc = [[GKMatchmakerViewController alloc] initWithInvite:acceptedInvite];
+                mmvc.matchmakerDelegate = gameScene;
+                UIViewController *vc = self.view.window.rootViewController;
+                [vc presentViewController:mmvc animated:YES completion:nil];
+                
+            }
+            else if (playersToInvite)
+            {
+                gameScene.invite=YES;
+                GKMatchRequest *request = [[GKMatchRequest alloc] init];
+                request.minPlayers = 2;
+                request.maxPlayers = 2;
+                request.playersToInvite = playersToInvite;
+                
+                GKMatchmakerViewController *mmvc = [[GKMatchmakerViewController alloc] initWithMatchRequest:request];
+                mmvc.matchmakerDelegate = gameScene;
+                UIViewController *vc = self.view.window.rootViewController;
+                [vc presentViewController:mmvc animated:YES completion:nil];
+            }
+            
+        };
     }
     return self;
 }
@@ -342,6 +409,8 @@ static inline CGSize kContainerSize()
         
     }else if ([node.name isEqualToString:@"multiWorld"]) {
         [self zoomMulti];
+    }else if ([node.name isEqualToString:@"GC"]) {
+        [self loadAchievement];
     }
 }
 
@@ -358,6 +427,8 @@ static inline CGSize kContainerSize()
         optionS.maxLives = maxLife;
         optionS.shield = breakAble;
         [self.view presentScene:optionS transition:[SKTransition pushWithDirection:SKTransitionDirectionRight duration:0.8]];
+    }else if (dragLocation.y-location.y>300&&multiScreen){
+        [self loadAchievement];
     }
 }
 
@@ -682,6 +753,21 @@ gameScene.tutorial=1;
     //}
 }
 
+
+-(void)loadAchievement{
+    
+    [self reportAchievementIdentifier:@"manual" percentComplete:1.];
+    
+    GKGameCenterViewController *gameCenterController = [[GKGameCenterViewController alloc] init];
+    if (gameCenterController != nil)
+    {
+        gameCenterController.gameCenterDelegate = self;
+        gameCenterController.viewState = GKGameCenterViewControllerStateAchievements;
+        UIViewController *vc = self.view.window.rootViewController;
+        [vc presentViewController: gameCenterController animated: YES completion:nil];
+    }
+}
+
 - (void)gameCenterViewControllerDidFinish:(GKGameCenterViewController*)gameCenterViewController {
     
     UIViewController *vc = self.view.window.rootViewController;
@@ -696,6 +782,28 @@ gameScene.tutorial=1;
 -(void)matchmakerViewController:(GKMatchmakerViewController*)viewController didFailWithError:(NSError*)error{
     UIViewController *vc = self.view.window.rootViewController;
     [vc dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (void) reportAchievementIdentifier: (NSString*) identifier percentComplete: (float) percent
+{
+    GKAchievement *achievement = [[GKAchievement alloc] initWithIdentifier: identifier];
+    if (achievement)
+    {
+        achievement.percentComplete = percent*100.;
+        
+        NSArray *achievements = @[achievement];
+        [GKAchievement reportAchievements:achievements withCompletionHandler:^(NSError *error)
+         {
+             if (error != nil)
+             {
+                 NSLog(@"Error in reporting achievements: %@", error);
+             }
+         }];
+    }
+}
+
+-(void)match:(GKMatch *)match didReceiveData:(NSData *)data fromPlayer:(NSString *)playerID{
+    
 }
 
 @end

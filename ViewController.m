@@ -38,6 +38,11 @@
     StartScene * scene = [[StartScene alloc]initWithSize:skView.bounds.size];
     scene.scaleMode = SKSceneScaleModeAspectFill;
     
+    
+    // Present the scene.
+    [skView presentScene:scene];
+    
+    
     [GKMatchmaker sharedMatchmaker].inviteHandler = ^(GKInvite *acceptedInvite, NSArray *playersToInvite) {
         // Insert game-specific code here to clean up any game in progress.
         
@@ -48,33 +53,33 @@
         gameScene.touchLocation = CGPointMake(CGRectGetMidX(skView.frame), CGRectGetMidY(skView.frame));
         gameScene.guardBreak = YES;
         gameScene.maxLives = 2;
+        gameScene.invite=YES;
         AppDelegate *delegate =  ( AppDelegate *) [[UIApplication sharedApplication] delegate];
         gameScene.bgMusic=delegate.bgMusic;
         [skView presentScene:gameScene transition:[SKTransition fadeWithColor:[UIColor colorWithWhite:0.92 alpha:0.7] duration:0.65f]];
         
         if (acceptedInvite)
         {
+            gameScene.invite=YES;
             GKMatchmakerViewController *mmvc = [[GKMatchmakerViewController alloc] initWithInvite:acceptedInvite];
-            mmvc.matchmakerDelegate = self;
+            mmvc.matchmakerDelegate = gameScene;
             [self presentViewController:mmvc animated:YES completion:nil];
             
         }
         else if (playersToInvite)
         {
+            gameScene.invite=YES;
             GKMatchRequest *request = [[GKMatchRequest alloc] init];
             request.minPlayers = 2;
             request.maxPlayers = 2;
             request.playersToInvite = playersToInvite;
             
             GKMatchmakerViewController *mmvc = [[GKMatchmakerViewController alloc] initWithMatchRequest:request];
-            mmvc.matchmakerDelegate = self;
+            mmvc.matchmakerDelegate = gameScene;
             [self presentViewController:mmvc animated:YES completion:nil];
         }
         
     };
-    
-    // Present the scene.
-    [skView presentScene:scene];
 }
 
 - (BOOL)shouldAutorotate

@@ -7,9 +7,9 @@
 //
 
 #import <SpriteKit/SpriteKit.h>
-#import "GCHelper.h"
+#import <GameKit/GameKit.h>
 
-@interface OptionScene : SKScene <GCHelperDelegate,GKGameCenterControllerDelegate>
+@interface OptionScene : SKScene <GKGameCenterControllerDelegate,SKPhysicsContactDelegate>
 
 
 @property NSInteger maxLives;
