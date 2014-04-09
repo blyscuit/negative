@@ -659,6 +659,8 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     {
         achievement.percentComplete = percent*100.;
         
+        achievement.showsCompletionBanner = YES;    //Indicate that a banner should be shown
+        
         NSArray *achievements = @[achievement];
         [GKAchievement reportAchievements:achievements withCompletionHandler:^(NSError *error)
          {

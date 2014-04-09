@@ -784,12 +784,14 @@ gameScene.tutorial=1;
     [vc dismissViewControllerAnimated:YES completion:nil];
 }
 
-- (void) reportAchievementIdentifier: (NSString*) identifier percentComplete: (float) percent
-{
+- (void) reportAchievementIdentifier: (NSString*) identifier percentComplete: (float) percent{
     GKAchievement *achievement = [[GKAchievement alloc] initWithIdentifier: identifier];
     if (achievement)
     {
         achievement.percentComplete = percent*100.;
+        
+        
+        achievement.showsCompletionBanner = YES;    //Indicate that a banner should be shown
         
         NSArray *achievements = @[achievement];
         [GKAchievement reportAchievements:achievements withCompletionHandler:^(NSError *error)
