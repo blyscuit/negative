@@ -1388,9 +1388,11 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             if (self.playerCharge<0) {
                 self.playerCharge=0;
             }
-            if(self.playerCharge>=3){
+            if(self.playerCharge>=2){
                 [self reportAchievementIdentifier:@"maxcharge" percentComplete:1.];
-            return;
+            }
+            if(self.playerCharge>=3){
+                return;
             }
             self.playerCharge++;
             
@@ -2653,7 +2655,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             word1.alpha=.0;
             word1.fontSize = 14*kSizeMultiply();
             word1.fontColor = [SKColor grayColor];
-            word1.text = [NSString stringWithFormat:@"your [Charge] (You):"];
+            word1.text = [NSString stringWithFormat:@"This is You:"];
             word1.position = CGPointMake(CGRectGetMidX(self.frame),(CGRectGetMidY(self.frame))+((kContainerSize().height+kContainerSpace())*(-2))+player.frame.size.height+25);
             [self addChild:word1];
             [word1 runAction:[SKAction sequence:@[[SKAction waitForDuration:1.],[SKAction fadeAlphaTo:1. duration:textTime]]]];
@@ -2663,7 +2665,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             word2.alpha=.0;
             word2.fontSize = 14*kSizeMultiply();
             word2.fontColor = [SKColor grayColor];
-            word2.text = [NSString stringWithFormat:@"moves in rhythm [Pulse]"];
+            word2.text = [NSString stringWithFormat:@"moves in rhythm called [Pulse]"];
             word2.position = CGPointMake(CGRectGetMidX(self.frame),(CGRectGetMidY(self.frame))+((kContainerSize().height+kContainerSpace())*(-2))-player.frame.size.height-25);
             [self addChild:word2];
             [word2 runAction:[SKAction sequence:@[[SKAction waitForDuration:2.],[SKAction fadeAlphaTo:1. duration:textTime]]]];

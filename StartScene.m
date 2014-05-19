@@ -33,6 +33,7 @@ static inline CGSize kContainerSize()
 @property BOOL classic;
 @property BOOL loadMusic;
 @property BOOL zooming;
+@property BOOL music;
 
 @end
 
@@ -755,6 +756,13 @@ gameScene.tutorial=1;
 
 
 -(void)loadAchievement{
+    self.music=NO;
+    AppDelegate *delegate =  ( AppDelegate *) [[UIApplication sharedApplication] delegate];
+    if(delegate.bgMusic)
+    {
+        delegate.bgMusic=NO;
+        self.music=YES;
+    }
     
     [self reportAchievementIdentifier:@"manual" percentComplete:1.];
     
@@ -772,6 +780,14 @@ gameScene.tutorial=1;
     
     UIViewController *vc = self.view.window.rootViewController;
     [vc dismissViewControllerAnimated:YES completion:nil];
+    
+    
+    if(self.music)
+    {
+        AppDelegate *delegate =  ( AppDelegate *) [[UIApplication sharedApplication] delegate];
+        delegate.bgMusic=YES;
+        self.music=NO;
+    }
 }
 
 -(void)matchmakerViewControllerWasCancelled:(GKMatchmakerViewController*)viewController{
