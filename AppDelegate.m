@@ -15,6 +15,7 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
+    [self createPlistForFirstTime];
     bgMusic=YES;
     
 	viewController = [viewController initWithNibName:nil bundle:nil];
@@ -62,6 +63,25 @@
 - (void)applicationWillTerminate:(UIApplication *)application
 {
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+}
+
+-(void)createPlistForFirstTime{
+    NSFileManager *defFM = [NSFileManager defaultManager];
+	NSString *docsDir = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,NSUserDomainMask, YES) objectAtIndex:0];
+	NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+    //..Stuff that is done only once when installing a new version....
+	static NSString *AppVersionKey = @"MyAppVersion";
+	int lastVersion = [userDefaults integerForKey: AppVersionKey];
+	if( lastVersion != 1.0 )	//..do this only once after install..
+	{
+		[userDefaults setInteger: 1.0 forKey: AppVersionKey];
+		NSString *appDir = [[NSBundle mainBundle] resourcePath];
+		NSString *src = [appDir stringByAppendingPathComponent: @"Property.plist"];
+		NSString *dest = [docsDir stringByAppendingPathComponent: @"Property.plist"];
+		[defFM removeItemAtPath: dest error: NULL];  //..remove old copy
+		[defFM copyItemAtPath: src toPath: dest error: NULL];
+	}
+    //..end of stuff done only once when installing a new version.
 }
 
 @end

@@ -259,7 +259,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     
     if (![fileManager fileExistsAtPath: [self dataFilePath]])
     {
-        NSString *bundle = [[NSBundle mainBundle] pathForResource:@"datafile" ofType:@"plist"];
+        NSString *bundle = [[NSBundle mainBundle] pathForResource:@"Property" ofType:@"plist"];
         [fileManager copyItemAtPath:bundle toPath: [self dataFilePath] error:nil];
     }
     saveArray = [NSMutableArray arrayWithContentsOfFile:[self dataFilePath]];
@@ -471,7 +471,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     UITouch *touch = [touches anyObject];
     CGPoint dragLocation = [touch locationInNode:self];
     
-    if (location.x-dragLocation.x>150){
+    if (location.x-dragLocation.x>10){
         
         [saveArray replaceObjectAtIndex:0 withObject:[NSNumber numberWithInteger:maxLives]];
         [saveArray replaceObjectAtIndex:1 withObject:[NSNumber numberWithBool:shield]];
@@ -479,11 +479,11 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
             [saveArray replaceObjectAtIndex:2 withObject:[NSNumber numberWithInteger:1]];
         }
         [self saveData];
-        SKNode*back=[self childNodeWithName:@"whiteBrick1"];
+        //SKNode*back=[self childNodeWithName:@"whiteBrick1"];
         
-        StartScene *startS = [[StartScene alloc]initWithSize:self.size];
-        startS.scaleMode = SKSceneScaleModeAspectFill;
-        [self.view presentScene:startS transition:[SKTransition pushWithDirection:SKTransitionDirectionLeft duration:0.8]];
+        //StartScene *startS = [[StartScene alloc]initWithSize:self.size];
+        //startS.scaleMode = SKSceneScaleModeAspectFill;
+        //[self.view presentScene:startS transition:[SKTransition pushWithDirection:SKTransitionDirectionLeft duration:0.8]];
     }
     
     if (self.dragLock) {
@@ -496,7 +496,13 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
 }
 
 -(void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event{
-    
+    [saveArray replaceObjectAtIndex:0 withObject:[NSNumber numberWithInteger:maxLives]];
+    [saveArray replaceObjectAtIndex:1 withObject:[NSNumber numberWithBool:shield]];
+    if (self.intCry>2 && [[saveArray objectAtIndex:3]integerValue]<=1) {
+        [saveArray replaceObjectAtIndex:2 withObject:[NSNumber numberWithInteger:1]];
+    }
+    [self saveData];
+    NSLog(@"save");
     
     UITouch *touch = [touches anyObject];
     location = [touch locationInNode:self];

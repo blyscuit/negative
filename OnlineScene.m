@@ -2463,7 +2463,7 @@ static const u_int32_t  kPlayerProjectileCategory   = 0x1 <<4;
     
     if (![fileManager fileExistsAtPath: [self dataFilePath]])
     {
-        NSString *bundle = [[NSBundle mainBundle] pathForResource:@"datafile" ofType:@"plist"];
+        NSString *bundle = [[NSBundle mainBundle] pathForResource:@"Property" ofType:@"plist"];
         [fileManager copyItemAtPath:bundle toPath: [self dataFilePath] error:nil];
     }
     saveArray = [NSMutableArray arrayWithContentsOfFile:[self dataFilePath]];

@@ -62,8 +62,8 @@
     
     UIViewController *nextViewController = nil;
     
-    if (viewController == self.firstViewController) {
-        nextViewController = self.second;
+    if (viewController == self.second) {
+        nextViewController = self.firstViewController;
     }
     
     return nextViewController;
@@ -74,8 +74,8 @@
     
     UIViewController *prevViewController = nil;
     
-    if (viewController == self.second) {
-        prevViewController = self.firstViewController;
+    if (viewController == self.firstViewController) {
+        prevViewController = self.second;
     }
     
     return prevViewController;
@@ -110,6 +110,10 @@
     }
     
     return second;
+}
+
+- (BOOL)prefersStatusBarHidden {
+    return YES;
 }
 
 @end

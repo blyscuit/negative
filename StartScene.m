@@ -45,7 +45,6 @@ static inline CGSize kContainerSize()
     if (self = [super initWithSize:size]) {
         /* Setup your scene here */
         
-        [self createPlistForFirstTime];
         [self readNumbersFromFile];
         
         self.zooming=NO;
@@ -273,24 +272,6 @@ static inline CGSize kContainerSize()
     //return [[NSBundle mainBundle] pathForResource:@"datafile" ofType:@"plist"];
 }
 
--(void)createPlistForFirstTime{
-    NSFileManager *defFM = [NSFileManager defaultManager];
-	NSString *docsDir = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,NSUserDomainMask, YES) objectAtIndex:0];
-	NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    //..Stuff that is done only once when installing a new version....
-	static NSString *AppVersionKey = @"MyAppVersion";
-	int lastVersion = [userDefaults integerForKey: AppVersionKey];
-	if( lastVersion != 1.0 )	//..do this only once after install..
-	{
-		[userDefaults setInteger: 1.0 forKey: AppVersionKey];
-		NSString *appDir = [[NSBundle mainBundle] resourcePath];
-		NSString *src = [appDir stringByAppendingPathComponent: @"Property.plist"];
-		NSString *dest = [docsDir stringByAppendingPathComponent: @"Property.plist"];
-		[defFM removeItemAtPath: dest error: NULL];  //..remove old copy
-		[defFM copyItemAtPath: src toPath: dest error: NULL];
-	}
-    //..end of stuff done only once when installing a new version.
-}
 
 -(void)readNumbersFromFile{
     //NSLog(@"content= %@ from %@",[NSArray arrayWithContentsOfFile:[self dataFilePath]],[self dataFilePath]);
@@ -302,7 +283,7 @@ static inline CGSize kContainerSize()
     
     if (![fileManager fileExistsAtPath: [self dataFilePath]])
     {
-        NSString *bundle = [[NSBundle mainBundle] pathForResource:@"datafile" ofType:@"plist"];
+        NSString *bundle = [[NSBundle mainBundle] pathForResource:@"Property" ofType:@"plist"];
         [fileManager copyItemAtPath:bundle toPath: [self dataFilePath] error:nil];
     }
     saveArray = [NSMutableArray arrayWithContentsOfFile:[self dataFilePath]];
@@ -348,6 +329,8 @@ static inline CGSize kContainerSize()
         return;
     }
     
+    [self readNumbersFromFile];
+    
     UITouch *touch = [touches anyObject];
     location = [touch locationInNode:self];
     SKNode *node = [self nodeAtPoint:location];
@@ -370,11 +353,12 @@ static inline CGSize kContainerSize()
         [self nodesDisappearWith:node];
         
     }else if ([node.name isEqualToString:@"configor"]) {
-        OptionScene *optionS = [[OptionScene alloc]initWithSize:self.size];
+        /*OptionScene *optionS = [[OptionScene alloc]initWithSize:self.size];
         optionS.scaleMode = SKSceneScaleModeAspectFill;
         optionS.maxLives = maxLife;
         optionS.shield = breakAble;
         [self.view presentScene:optionS transition:[SKTransition pushWithDirection:SKTransitionDirectionRight duration:0.8]];
+         */
     }else if ([node.name isEqualToString:@"musicor"]) {
         [self setMusic];
     }else if ([node.name isEqualToString:@"wired"]) {
@@ -423,11 +407,12 @@ static inline CGSize kContainerSize()
     CGPoint dragLocation = [touch locationInNode:self];
     
     if (dragLocation.x-location.x>150&&multiScreen) {
-        OptionScene *optionS = [[OptionScene alloc]initWithSize:self.size];
+        /*OptionScene *optionS = [[OptionScene alloc]initWithSize:self.size];
         optionS.scaleMode = SKSceneScaleModeAspectFill;
         optionS.maxLives = maxLife;
         optionS.shield = breakAble;
         [self.view presentScene:optionS transition:[SKTransition pushWithDirection:SKTransitionDirectionRight duration:0.8]];
+         */
     }else if (dragLocation.y-location.y>300&&multiScreen){
         [self loadAchievement];
     }
